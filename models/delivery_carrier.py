@@ -57,11 +57,8 @@ class DeliveryCarrier(models.Model):
         :return CNEExpressRequest: CNE Express Request object
         """
         return CNEExpressRequest(
-            user=self.cnexpress_user,
-            password=self.cnexpress_password,
-            agency=self.cnexpress_agency,
-            customer=self.cnexpress_customer,
-            contract=self.cnexpress_contract,
+            api_cid=self.cnexpress_api_cid,
+            api_token=self.cnexpress_api_token,
             prod=self.prod_environment,
         )
 
@@ -152,10 +149,6 @@ class DeliveryCarrier(models.Model):
         ctt_request = self._ctt_request()
         error = ctt_request.validate_user()
         self._ctt_log_request(ctt_request)
-        # For user validation success there's an error return as well.
-        # We better ignore it.
-        if error[0]:
-            self._ctt_check_error(error)
 
     def _prepare_cnexpress_shipping(self, picking):
         """Convert picking values for CNE Express API

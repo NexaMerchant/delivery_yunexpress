@@ -3,15 +3,15 @@
 import logging
 
 from lxml import etree
-from zeep import Client
-from zeep.helpers import serialize_object
-from zeep.plugins import HistoryPlugin
+import requests
+import hashlib
+import time
 
 _logger = logging.getLogger(__name__)
 
 CNEXPRESS_API_URL = {
-    "test": "http://iberws.tourlineexpress.com:8686/ClientsAPI.svc?singleWsdl",
-    "prod": "http://iberws.tourlineexpress.com:8700/ClientsAPI.svc?singleWsdl",
+    "test": "https://api.cne.com",
+    "prod": "https://api.cne.com",
 }
 
 
@@ -43,21 +43,28 @@ class CNEExpressRequest:
     """Interface between CNE Express SOAP API and Odoo recordset.
     Abstract CNE Express API Operations to connect them with Odoo
     """
+    api_cid = False
+    api_token = False
 
-    def __init__(self, user, password, agency, customer, contract, prod=False):
-        self.user = user
-        self.password = password
-        self.agency = agency
-        self.customer = customer
-        self.contract = contract
-        self.history = HistoryPlugin(maxlen=10)
+    def __init__(self, api_cid, api_token, prod=False):
+        self.api_cid = api_cid
+        self.api_token = api_token
         # We'll store raw xml request/responses in this properties
         self.ctt_last_request = False
         self.ctt_last_response = False
-        self.client = Client(
-            wsdl=CNEXPRESS_API_URL["prod" if prod else "test"],
-            plugins=[self.history],
-        )
+        self.url = CNEXPRESS_API_URL["prod"] if prod else CNEXPRESS_API_URL["test"]
+        self.headers = {
+            "Content-Type": "application/json;charset=UTF-8"
+        }
+
+    def get_secret(self, timestamp):
+        # Generate the secret key for the API
+        # The secret is a md5 hash of the api_cid, timestamp and api_token
+        combined = (self.api_cid + timestamp + self.api_token).encode('utf-8')
+        # md5 hash
+        secret = hashlib.md5(combined).hexdigest()
+        # unlowercase
+        return secret.lower()
 
     @staticmethod
     def _format_error(error):
@@ -94,6 +101,50 @@ class CNEExpressRequest:
         }
 
     # API Methods
+
+    def emskindlist(self):
+        url = self.url + "/cgi-bin/EmsData.dll?DoApi"
+        timestamp = timestamp = str(int(time.time()*1000))
+        secret = self.get_secret(timestamp)
+        data = {
+            "RequestName": "EmsKindList",
+            "icID": self.api_cid,
+            "TimeStamp": timestamp,
+            "MD5": secret
+        }
+        response = requests.post(url, headers=self.headers, json=data)
+        print(response.text)
+        return response.json()
+        if response.status_code != 200:
+            raise Exception("Error in request")
+        if response.json().get("ErrorCode") != 0:
+            raise Exception("Error in response")
+        return response.json().get("Data")
+
+    # cne print
+    #@link https://apifox.com/apidoc/shared/6eba6d59-905d-4587-810b-607358a30aa3/doc-2909537
+    def cneprint(self, cnos, ptemp="label10x10_1"):
+        url = "https://label.cne.com/CnePrint"
+        timestamp = str(int(time.time()*1000))
+        combined = (self.api_cid + cnos + self.api_token).encode('utf-8')
+        # lowercase
+        secret = secret = hashlib.md5(combined).hexdigest()
+        # unlowercase
+        secret = secret.lower()
+        data = {
+            "icID": self.api_cid,
+            "TimeStamp": timestamp,
+            "signature": secret,
+            "cNos": cnos,
+            "ptemp": ptemp,
+        }
+        response = requests.get(url, params=data)
+        if response.status_code != 200:
+            raise Exception("Error in request")
+        if response.json().get("ErrorCode") != 0:
+            raise Exception("Error in response")
+        return response.json().get("Data")
+
 
     @log_request
     def manifest_shipping(self, shipping_values):
@@ -242,14 +293,9 @@ class CNEExpressRequest:
 
     @log_request
     def validate_user(self):
-        """Validate credentials against the API.
 
-        :return tuple: tuple containing:
-            int: Error code (0 for success)
-            str: Validation result message
-        """
-        response = self.client.service.ValidateUser(**self._credentials())[0]
-        return [(response.ErrorCode, response.ErrorMessage)]
+        return self.emskindlist()
+
 
     @log_request
     def create_request(self, delivery_date, min_hour, max_hour):
