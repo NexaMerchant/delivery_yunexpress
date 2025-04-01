@@ -168,6 +168,65 @@ class DeliveryCarrier(models.Model):
         reference = picking.name
         if picking.sale_id:
             reference = "{}-{}".format(picking.sale_id.name, reference)
+
+        # https://apifox.com/apidoc/shared/6eba6d59-905d-4587-810b-607358a30aa3/doc-2909525
+
+        goodslist = []
+        # Get the product name and quantity from the picking
+        for move in picking.move_lines:
+            goodslist.append(
+                {
+                    "cxGoods": move.product_id.name,
+                    "cxGoodsA": move.product_id.name,
+                    "fxPrice": move.product_id.lst_price,
+                    "cxMoney": move.product_id.currency,
+                    "ixQuantity": move.quantity_done,
+                }
+            )
+
+        return {
+            "cEmsKind": self.cnexpress_channel,  # Optional
+            "nItemType": 1,  # Optional
+            "cAddrFrom": "MYSHOP",
+            "iItem": 1,  # Optional
+            # order number
+            "cRNo": reference,
+            # order receiver country code
+            "cDes": recipient.country_id.code,
+            # order receiver name
+            "cReceiver": recipient.name or recipient_entity.name,
+            # order receiver company name
+            "cRunit": recipient_entity.name,
+            # order receiver address
+            "cRAddr": recipient.street,
+            # order receiver city
+            "cRCity": recipient.city,
+            # order receiver province
+            "cRProvince": recipient.state_id.name,
+            # order receiver postal code
+            "cRPostcode": recipient.zip,
+            # order receiver country name
+            "cRCountry": recipient.country_id.name,
+            # order receiver phone number
+            "cRPhone": recipient.phone or recipient_entity.phone,
+            # order receiver mobile number
+            "cRSms": recipient.mobile or recipient_entity.mobile,
+            # order receiver email address
+            "cREmail": recipient.email or recipient_entity.email,
+            # order package weight
+            "fWeight": int(weight * 1000) or 1,  # Weight in grams
+            # order memo
+            "cMemo": None,  # Optional
+            # order reserve
+            "cReserve": None,  # Optional
+            # order vat code
+            "vatCode": None,  # Optional
+            # order ioss code
+            "iossCode": None,  # Optional
+            # order sender name
+            "cSender": sender_partner.name,
+            "GoodsList": goodslist
+        }
         return {
             "ClientReference": reference,  # Optional
             "ClientDepartmentCode": None,  # Optional (no core field matches)
@@ -305,6 +364,6 @@ class DeliveryCarrier(models.Model):
         :return str: tracking url
         """
         tracking_url = (
-            "https://app.cnexpress.com/AreaClientes/Views/" "Destinatarios.aspx?s={}"
+            "https://t.17track.net/en#nums={}"
         )
         return tracking_url.format(picking.carrier_tracking_ref)

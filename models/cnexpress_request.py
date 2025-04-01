@@ -157,7 +157,24 @@ class CNEExpressRequest:
             str: Shipping code
         """
         values = dict(self._credentials(), **shipping_values)
-        response = self.client.service.ManifestShipping(**values)
+
+        headers = {
+            "Content-Type": "application/json;charset=UTF-8",
+            "Accept": "application/json",
+        }
+        # Generate the secret key for the API
+        url = self.url + "/cgi-bin/EmsData.dll?DoApi"
+        timestamp = str(int(time.time()*1000))
+
+        data = {
+            "RequestName": "PreInputSet",
+            "icID": self.api_cid,
+            "TimeStamp": timestamp,
+            "MD5": self.get_secret(timestamp),
+            "RecList": values
+        }
+
+        response = requests.post(url, headers=headers, json=data)
         return (
             self._format_error(response.ErrorCodes),
             self._format_document(response.Documents),
