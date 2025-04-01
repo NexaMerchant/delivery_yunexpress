@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<!-- Copyright 2022 Tecnativa - David Vidal
+     License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl). -->
+<odoo>
+    <record id="view_delivery_carrier_form" model="ir.ui.view">
+        <field name="model">delivery.carrier</field>
+        <field name="inherit_id" ref="delivery.view_delivery_carrier_form" />
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button
+                    name="%(delivery_cnexpress.action_delivery_cnexpress_pickup_wizard)d"
+                    type="action"
+                    class="oe_stat_button"
+                    icon="fa-truck"
+                    string="Pickup request"
+                    context="{'default_carrier_id': active_id}"
+                    attrs="{'invisible': [('delivery_type', '!=', 'cnexpress')]}"
+                />
+            </xpath>
+            <xpath expr="//notebook/page[1]" position='before'>
+                <page
+                    string="CNE Express Configuration"
+                    attrs="{'invisible': [('delivery_type', '!=', 'cnexpress')]}"
+                >
+                    <group>
+                        <group string="Connection">
+                            <field
+                                name="cnexpress_api_cid"
+                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                            />
+
+                            <field
+                                name="cnexpress_api_token"
+                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                            />
+
+                            <button
+                                name="action_ctt_validate_user"
+                                type="object"
+                                string="Test connection"
+                                class="oe_link"
+                                icon="fa-plug"
+                            />
+                        </group>
+                        <group string="Shipping">
+                            <field
+                                name="cnexpress_channel"
+                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                            />
+                        </group>
+                        <group string="Label format">
+                            <field
+                                name="cnexpress_document_model_code"
+                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                            />
+                            <field
+                                name="cnexpress_document_format"
+                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                            />
+                            <field
+                                name="cnexpress_document_offset"
+                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                            />
+                        </group>
+                    </group>
+                </page>
+            </xpath>
+        </field>
+    </record>
+</odoo>
