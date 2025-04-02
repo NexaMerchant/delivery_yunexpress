@@ -1,5 +1,8 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
+import logging
+
+_logger = logging.getLogger(__name__)
 
 from .cnexpress_master_data import (
     CNEXPRESS_DELIVERY_STATES_STATIC,
@@ -56,6 +59,11 @@ class DeliveryCarrier(models.Model):
 
         :return CNEExpressRequest: CNE Express Request object
         """
+        _logger.debug("cnexpress_api_cid: %s", self.cnexpress_api_cid)
+        if not self.cnexpress_api_cid:
+            _logger.warning("cnexpress_api_cid is False, please check configuration.")
+        record_values = self.read()[0]
+
         return CNEExpressRequest(
             api_cid=self.cnexpress_api_cid,
             api_token=self.cnexpress_api_token,
@@ -77,6 +85,9 @@ class DeliveryCarrier(models.Model):
         :param list error: List of tuples in the form of (code, description)
         :raises UserError: Prompt the error to the user
         """
+        print(error)
+        return
+
         if not error:
             return
         error_msg = ""
@@ -184,6 +195,13 @@ class DeliveryCarrier(models.Model):
                 }
             )
 
+        # labelContent
+        labelcontent = {
+            "fileType": "PDF",
+            "labelType": "label10x10",
+            "pickList": 1
+        }
+
         return {
             "cEmsKind": self.cnexpress_channel,  # Optional
             "nItemType": 1,  # Optional
@@ -225,6 +243,7 @@ class DeliveryCarrier(models.Model):
             "iossCode": None,  # Optional
             # order sender name
             "cSender": sender_partner.name,
+            "labelContent": None,  # Optional
             "GoodsList": goodslist
         }
         return {
@@ -267,6 +286,7 @@ class DeliveryCarrier(models.Model):
         :raises UserError: On any API error
         :return dict: With tracking number and delivery price (always 0)
         """
+        print("cnexpress_send_shipping")
         ctt_request = self._ctt_request()
         result = []
         for picking in pickings:

@@ -56,11 +56,17 @@ class CNEExpressRequest:
         self.headers = {
             "Content-Type": "application/json;charset=UTF-8"
         }
+        print("init")
+        print(self.api_cid)
+        print(self.api_token)
 
     def get_secret(self, timestamp):
         # Generate the secret key for the API
         # The secret is a md5 hash of the api_cid, timestamp and api_token
-        combined = (self.api_cid + timestamp + self.api_token).encode('utf-8')
+        print(self.api_cid)
+        print(self.api_token)
+        print(timestamp)
+        combined = (str(self.api_cid) + str(timestamp) + self.api_token).encode('utf-8')
         # md5 hash
         secret = hashlib.md5(combined).hexdigest()
         # unlowercase
@@ -93,11 +99,6 @@ class CNEExpressRequest:
         :return dict: Credentials keys and values
         """
         return {
-            "Id": self.user,
-            "Password": self.password,
-            "ContractCode": self.contract,
-            "ClientCode": self.customer,
-            "AgencyCode": self.agency,
         }
 
     # API Methods
@@ -178,7 +179,7 @@ class CNEExpressRequest:
         return (
             self._format_error(response.ErrorCodes),
             self._format_document(response.Documents),
-            response.ShippingCode,
+            response.ErrList.cNo,
         )
 
     @log_request
@@ -325,13 +326,21 @@ class CNEExpressRequest:
             list: Error codes
             str: Request shipping code
         """
-        values = dict(
-            self._credentials(),
-            **{
-                "DeliveryDate": delivery_date,
-                "HourMinuteMin1": min_hour,
-                "HourMinuteMax1": max_hour,
-            }
-        )
-        response = self.client.service.CreateRequest(**values)
-        return (self._format_error(response.ErrorCodes), response.RequestShippingCode)
+        url = "https://apitracking.cne.com/client/track"
+        timestamp = str(int(time.time()*1000))
+        secret = self.get_secret(timestamp)
+        headers = {
+            "Content-Type": "application/json;charset=UTF-8",
+            "Accept": "application/json",
+        }
+        data = {
+            "RequestName": "ClientTrack",
+            "icID": self.api_cid,
+            "TimeStamp": timestamp,
+            "MD5": secret,
+            "cNo": "3A5V908307617",
+            "lang": "en"
+        }
+        response = requests.post(url, headers=headers, json=data)
+        print(response.text)
+        return (response.status_code, response.text)
