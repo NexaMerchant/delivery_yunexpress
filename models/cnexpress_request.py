@@ -16,30 +16,6 @@ CNEXPRESS_API_URL = {
 }
 
 
-def log_request(method):
-    """Decorator to write raw request/response in the CNE request object"""
-
-    def wrapper(*args, **kwargs):
-        res = method(*args, **kwargs)
-        try:
-            args[0].ctt_last_request = etree.tostring(
-                args[0].history.last_sent["envelope"],
-                encoding="UTF-8",
-                pretty_print=True,
-            )
-            args[0].ctt_last_response = etree.tostring(
-                args[0].history.last_received["envelope"],
-                encoding="UTF-8",
-                pretty_print=True,
-            )
-        # Don't fail hard on this. Sometimes zeep can't keep history
-        except Exception:
-            return res
-        return res
-
-    return wrapper
-
-
 class CNEExpressRequest:
     """Interface between CNE Express SOAP API and Odoo recordset.
     Abstract CNE Express API Operations to connect them with Odoo
@@ -252,7 +228,6 @@ class CNEExpressRequest:
             self._format_document(response.Documents),
         )
 
-    @log_request
     def get_documents_multi(
         self,
         shipping_codes,
@@ -292,7 +267,6 @@ class CNEExpressRequest:
             raise Exception("Error in response")
         return response.json()
 
-    @log_request
     def get_service_types(self):
         """Gets the hired service types. Maps to API's GetServiceTypes.
 
@@ -302,7 +276,6 @@ class CNEExpressRequest:
         """
         return self.emskindlist()
 
-    @log_request
     def cancel_shipping(self, shipping_code):
         """Cancel a shipping by code
 
@@ -313,7 +286,6 @@ class CNEExpressRequest:
         response = self.client.service.CancelShipping(**values)
         return [(x.ErrorCode, x.ErrorMessage) for x in response]
 
-    @log_request
     def report_shipping(
         self, process_code="ODOO", document_type="XLSX", from_date=None, to_date=None
     ):
@@ -340,13 +312,11 @@ class CNEExpressRequest:
             self._format_document(response.Documents),
         )
 
-    @log_request
     def validate_user(self):
 
         return self.emskindlist()
 
 
-    @log_request
     def create_request(self, delivery_date, min_hour, max_hour):
         """Create a shipping pickup request. CreateRequest API's mapping.
 
