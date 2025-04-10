@@ -155,7 +155,7 @@ class CNEExpressRequest:
         :param dict shipping_values: Shippng values prepared from Odoo
         :return tuple: tuple containing:
             list: Error Codes
-            list: Document binaries
+            list: Document url
             str: Shipping code
         """
 
@@ -201,8 +201,8 @@ class CNEExpressRequest:
             else:
                 cNo = response.json().get("cNo")
                 printUrl = response.json().get("printUrl")
-        print("cNo: ", cNo)
-        print("PrintUrl: ", printUrl)
+        # print("cNo: ", cNo)
+        # print("PrintUrl: ", printUrl)
 
         return (
             "1",
@@ -218,12 +218,24 @@ class CNEExpressRequest:
             list: error codes in the form of tuples (code, descriptions)
             list: of OrderedDict with statuses
         """
-        values = dict(self._credentials(), ShippingCode=shipping_code)
-        response = self.client.service.GetTracking(**values)
-        return (
-            self._format_error(response.ErrorCodes),
-            (response.Tracking and serialize_object(response.Tracking.Tracking) or []),
-        )
+        url = "https://apitracking.cne.com/client/track"
+        timestamp = str(int(time.time()*1000))
+        secret = self.get_secret(timestamp)
+        headers = {
+            "Content-Type": "application/json;charset=UTF-8",
+            "Accept": "application/json",
+        }
+        data = {
+            "RequestName": "ClientTrack",
+            "icID": self.api_cid,
+            "TimeStamp": timestamp,
+            "MD5": secret,
+            "cNo": shipping_code,
+            "lang": "en"
+        }
+        response = requests.post(url, headers=headers, json=data)
+        print(response.text)
+        return (response.status_code, response.text)
 
     def get_documents(self, shipping_code):
         """Get shipping documents (label)

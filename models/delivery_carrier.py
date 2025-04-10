@@ -7,8 +7,6 @@ from odoo import http
 _logger = logging.getLogger(__name__)
 
 from .cnexpress_master_data import (
-    CNEXPRESS_DELIVERY_STATES_STATIC,
-    CNEXPRESS_SERVICES,
     CNEXPRESS_CHANNELS,
 )
 from .cnexpress_request import CNEExpressRequest
@@ -198,11 +196,12 @@ class DeliveryCarrier(models.Model):
         # Get the product name and quantity from the picking
         for move in picking.move_ids:
             # get the product name and quantity from the picking
+            # get the product declared_name_cn and declared_name_en, declared_price
             goodslist.append(
                 {
-                    "cxGoods": move.product_id.name,
-                    "cxGoodsA": move.product_id.name,
-                    "fxPrice": move.product_id.lst_price,
+                    "cxGoods": move.product_id.declared_name_en,
+                    "cxGoodsA": move.product_id.declared_name_cn,
+                    "fxPrice": move.product_id.declared_price,
                     "cxMoney": picking.company_id.currency_id.name,
                     "ixQuantity": 1,
                 }
@@ -215,13 +214,22 @@ class DeliveryCarrier(models.Model):
             "pickList": 1
         }
 
+        vatCode = None;
+        iossCode = None;
+
+        if recipient.country_id.code == "UK":
+            vatCode = config.get("cnexpress_uk_vat_code", vatCode)
+        
+        if recipient.country_id.code == "DE":
+            iossCode = config.get("cnexpress_eu_ioss_code", iossCode)
+
         return {
             "cEmsKind": self.name.replace(" ",""),  # Optional
             "nItemType": 1,  # Optional
             "cAddrFrom": "MYSHOP",
             "iItem": 1,  # Optional
             # order number
-            "cRNo": picking.origin,
+            "cRNo": reference,
             # order receiver country code
             "cDes": recipient.country_id.code,
             # order receiver name
@@ -251,45 +259,13 @@ class DeliveryCarrier(models.Model):
             # order reserve
             "cReserve": None,  # Optional
             # order vat code
-            "vatCode": None,  # Optional
+            "vatCode": vatCode,  # Optional
             # order ioss code
-            "iossCode": None,  # Optional
+            "iossCode": iossCode,  # Optional
             # order sender name
             "cSender": sender_partner.name,
             "labelContent": labelcontent,  # Optional
             "GoodsList": goodslist
-        }
-        return {
-            "ClientReference": reference,  # Optional
-            "ClientDepartmentCode": None,  # Optional (no core field matches)
-            "ItemsCount": picking.number_of_packages,
-            "IsClientPodScanRequired": None,  # Optional
-            "RecipientAddress": recipient.street,
-            "RecipientCountry": recipient.country_id.code,
-            "RecipientEmail": recipient.email or recipient_entity.email,  # Optional
-            "RecipientSMS": None,  # Optional
-            "RecipientMobile": recipient.mobile or recipient_entity.mobile,  # Optional
-            "RecipientName": recipient.name or recipient_entity.name,
-            "RecipientPhone": recipient.phone or recipient_entity.phone,
-            "RecipientPostalCode": recipient.zip,
-            "RecipientTown": recipient.city,
-            "RefundValue": None,  # Optional
-            "HasReturn": None,  # Optional
-            "IsSaturdayDelivery": None,  # Optional
-            "SenderAddress": sender_partner.street,
-            "SenderName": sender_partner.name,
-            "SenderPhone": sender_partner.phone or "",
-            "SenderPostalCode": sender_partner.zip,
-            "SenderTown": sender_partner.city,
-            "ShippingComments": None,  # Optional
-            "ShippingTypeCode": self.cnexpress_shipping_type,
-            "Weight": int(weight * 1000) or 1,  # Weight in grams
-            "PodScanInstructions": None,  # Optional
-            "IsFragile": None,  # Optional
-            "RefundTypeCode": None,  # Optional
-            "CreatedProcessCode": "ODOO",  # Optional
-            "HasControl": None,  # Optional
-            "HasFinalManagement": None,  # Optional
         }
 
     def cnexpress_send_shipping(self, pickings):
@@ -308,8 +284,6 @@ class DeliveryCarrier(models.Model):
         result = []
         for picking in pickings:
             vals = self._prepare_cnexpress_shipping(picking)
-            print("cnexpress_send_shipping vals")
-            print(vals)
         
             try:
                 error, documents, tracking = ctt_request.manifest_shipping(vals)
