@@ -6,6 +6,7 @@ from lxml import etree
 import requests
 import hashlib
 import time
+import json
 
 _logger = logging.getLogger(__name__)
 
@@ -56,16 +57,17 @@ class CNEExpressRequest:
         self.headers = {
             "Content-Type": "application/json;charset=UTF-8"
         }
-        print("init")
-        print(self.api_cid)
-        print(self.api_token)
+        # print("init")
+        # print(self.api_cid)
+        # print(self.api_token)
 
     def get_secret(self, timestamp):
         # Generate the secret key for the API
         # The secret is a md5 hash of the api_cid, timestamp and api_token
-        print(self.api_cid)
-        print(self.api_token)
-        print(timestamp)
+
+        print("api_cid: " + self.api_cid)
+        print("api_token: " + self.api_token)
+        print("timestamp: " + timestamp)
         combined = (str(self.api_cid) + str(timestamp) + self.api_token).encode('utf-8')
         # md5 hash
         secret = hashlib.md5(combined).hexdigest()
@@ -147,7 +149,6 @@ class CNEExpressRequest:
         return response.json().get("Data")
 
 
-    @log_request
     def manifest_shipping(self, shipping_values):
         """Create shipping with the proper picking values
 
@@ -157,7 +158,6 @@ class CNEExpressRequest:
             list: Document binaries
             str: Shipping code
         """
-        values = dict(self._credentials(), **shipping_values)
 
         headers = {
             "Content-Type": "application/json;charset=UTF-8",
@@ -172,17 +172,44 @@ class CNEExpressRequest:
             "icID": self.api_cid,
             "TimeStamp": timestamp,
             "MD5": self.get_secret(timestamp),
-            "RecList": values
+            "RecList": [shipping_values]
         }
 
         response = requests.post(url, headers=headers, json=data)
+
+        # logging
+        _logger.info("Request URL: %s", url)
+        _logger.info("Request Headers: %s", headers)
+        _logger.info("Request Data: %s", data)
+        _logger.info("Response Status Code: %s", response.status_code)
+        _logger.info("Response Headers: %s", response.headers)
+        _logger.info("Response Data: %s", response.text)
+
+        cNo = ""
+        printUrl = ""
+
+        # check the response status code and response data
+        if response.status_code != 200:
+            raise Exception("Error in request")
+        if response.json().get("ReturnValue") == 0:
+            raise Exception("Error in response")
+        if response.json().get("ReturnValue") > 0:
+            ErrList = response.json().get("ErrList")
+            if ErrList:
+                cNo = ErrList[0].get("cNo")
+                printUrl = ErrList[0].get("printUrl")
+            else:
+                cNo = response.json().get("cNo")
+                printUrl = response.json().get("printUrl")
+        print("cNo: ", cNo)
+        print("PrintUrl: ", printUrl)
+
         return (
-            self._format_error(response.ErrorCodes),
-            self._format_document(response.Documents),
-            response.ErrList.cNo,
+            "1",
+            printUrl,
+            cNo,
         )
 
-    @log_request
     def get_tracking(self, shipping_code):
         """Gather tracking status of shipping code. Maps to API's GetTracking.
 
@@ -198,7 +225,6 @@ class CNEExpressRequest:
             (response.Tracking and serialize_object(response.Tracking.Tracking) or []),
         )
 
-    @log_request
     def get_documents(self, shipping_code):
         """Get shipping documents (label)
 
@@ -238,21 +264,21 @@ class CNEExpressRequest:
             list: error codes in the form of tuples (code, descriptions)
             list: documents in the form of tuples (file_content, file_name)
         """
-        values = dict(
-            self._credentials(),
-            **{
-                "ShippingCodes": shipping_codes,
-                "DocumentCode": document_code,
-                "ModelCode": model_code,
-                "KindCode": kind_code,
-                "Offset": offset,
-            }
-        )
-        response = self.client.service.GetDocumentsV2(**values)
-        return (
-            self._format_error(response.ErrorCodes),
-            self._format_document(response.Documents),
-        )
+        url = "https://label.cne.com/CnePrint"
+        timestamp = str(int(time.time()*1000))
+        secret = self.get_secret(timestamp)
+        data = {
+            "icID": self.api_cid,
+            "signature": secret,
+            "cNos": shipping_codes,
+            "ptemp": "label10x15_1",
+        }
+        response = requests.get(url, params=data)
+        if response.status_code != 200:
+            raise Exception("Error in request")
+        if response.json().get("ErrorCode") != 0:
+            raise Exception("Error in response")
+        return response.json()
 
     @log_request
     def get_service_types(self):
@@ -262,14 +288,7 @@ class CNEExpressRequest:
             list: error codes in the form of tuples (code, descriptions)
             list: list of tuples (service_code, service_description):
         """
-        response = self.client.service.GetServiceTypes(**self._credentials())
-        return (
-            self._format_error(response.ErrorCodes),
-            [
-                (x.ShippingTypeCode, x.ShippingTypeDescription)
-                for x in response.Services.ClientShippingType
-            ],
-        )
+        return self.emskindlist()
 
     @log_request
     def cancel_shipping(self, shipping_code):

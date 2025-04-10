@@ -1,6 +1,8 @@
 from odoo import _, api, fields, models
 from odoo.exceptions import UserError
 import logging
+from odoo.tools.config import config
+from odoo import http
 
 _logger = logging.getLogger(__name__)
 
@@ -63,6 +65,18 @@ class DeliveryCarrier(models.Model):
         if not self.cnexpress_api_cid:
             _logger.warning("cnexpress_api_cid is False, please check configuration.")
         record_values = self.read()[0]
+        _logger.debug("cnexpress_api_token: %s", record_values["cnexpress_api_token"])
+        if self.cnexpress_api_token is False:
+            # read the value from the configuration
+            _logger.warning("cnexpress_api_token is False, please check configuration.")
+            self.cnexpress_api_token = config.get(
+                "cne_api_secret", self.cnexpress_api_token
+            )
+        if self.cnexpress_api_cid is False:
+            self.cnexpress_api_cid = config.get(
+                "cne_api_cid", self.cnexpress_api_cid
+            )
+        
 
         return CNEExpressRequest(
             api_cid=self.cnexpress_api_cid,
@@ -126,10 +140,6 @@ class DeliveryCarrier(models.Model):
         if not self.cnexpress_shipping_type:
             return
         # Avoid checking if credentianls aren't setup or are invalid
-        try:
-            self.action_ctt_validate_user()
-        except UserError:
-            return
         ctt_request = self._ctt_request()
         error, service_types = ctt_request.get_service_types()
         self._ctt_log_request(ctt_request)
@@ -169,10 +179,12 @@ class DeliveryCarrier(models.Model):
         """
         self.ensure_one()
         # A picking can be delivered from any warehouse
-        sender_partner = (
-            picking.picking_type_id.warehouse_id.partner_id
-            or picking.company_id.partner_id
-        )
+        sender_partner = picking.company_id.partner_id
+        if picking.picking_type_id:
+            sender_partner = (
+                picking.picking_type_id.warehouse_id.partner_id
+                or picking.company_id.partner_id
+            )
         recipient = picking.partner_id
         recipient_entity = picking.partner_id.commercial_partner_id
         weight = picking.shipping_weight
@@ -184,31 +196,32 @@ class DeliveryCarrier(models.Model):
 
         goodslist = []
         # Get the product name and quantity from the picking
-        for move in picking.move_lines:
+        for move in picking.move_ids:
+            # get the product name and quantity from the picking
             goodslist.append(
                 {
                     "cxGoods": move.product_id.name,
                     "cxGoodsA": move.product_id.name,
                     "fxPrice": move.product_id.lst_price,
-                    "cxMoney": move.product_id.currency,
-                    "ixQuantity": move.quantity_done,
+                    "cxMoney": picking.company_id.currency_id.name,
+                    "ixQuantity": 1,
                 }
             )
 
         # labelContent
         labelcontent = {
             "fileType": "PDF",
-            "labelType": "label10x10",
+            "labelType": "label10x15",
             "pickList": 1
         }
 
         return {
-            "cEmsKind": self.cnexpress_channel,  # Optional
+            "cEmsKind": self.name.replace(" ",""),  # Optional
             "nItemType": 1,  # Optional
             "cAddrFrom": "MYSHOP",
             "iItem": 1,  # Optional
             # order number
-            "cRNo": reference,
+            "cRNo": picking.origin,
             # order receiver country code
             "cDes": recipient.country_id.code,
             # order receiver name
@@ -226,11 +239,11 @@ class DeliveryCarrier(models.Model):
             # order receiver country name
             "cRCountry": recipient.country_id.name,
             # order receiver phone number
-            "cRPhone": recipient.phone or recipient_entity.phone,
+            "cRPhone": str(recipient.phone or recipient_entity.phone or ''),
             # order receiver mobile number
-            "cRSms": recipient.mobile or recipient_entity.mobile,
+            "cRSms": str(recipient.mobile or recipient_entity.mobile or ''),
             # order receiver email address
-            "cREmail": recipient.email or recipient_entity.email,
+            "cRPhone": str(recipient.phone or recipient_entity.phone or ''),
             # order package weight
             "fWeight": int(weight * 1000) or 1,  # Weight in grams
             # order memo
@@ -243,7 +256,7 @@ class DeliveryCarrier(models.Model):
             "iossCode": None,  # Optional
             # order sender name
             "cSender": sender_partner.name,
-            "labelContent": None,  # Optional
+            "labelContent": labelcontent,  # Optional
             "GoodsList": goodslist
         }
         return {
@@ -288,9 +301,16 @@ class DeliveryCarrier(models.Model):
         """
         print("cnexpress_send_shipping")
         ctt_request = self._ctt_request()
+        print("cnexpress_send_shipping ctt_request")
+        print(self.cnexpress_api_cid)
+        print(ctt_request.ctt_last_request)
+        print("cnexpress_send_shipping ctt_request")
         result = []
         for picking in pickings:
             vals = self._prepare_cnexpress_shipping(picking)
+            print("cnexpress_send_shipping vals")
+            print(vals)
+        
             try:
                 error, documents, tracking = ctt_request.manifest_shipping(vals)
                 self._ctt_check_error(error)
@@ -298,7 +318,16 @@ class DeliveryCarrier(models.Model):
                 raise (e)
             finally:
                 self._ctt_log_request(ctt_request)
+
             vals.update({"tracking_number": tracking, "exact_price": 0})
+            vals.update({"carrier_tracking_ref": tracking})
+            # save the tracking number to carrier_tracking_ref field
+            picking.carrier_tracking_ref = tracking
+
+            # save the tracking number to carrier_tracking_ref field
+            picking.carrier_tracking_ref = tracking
+            picking.update({"carrier_tracking_ref": tracking})
+
             # The default shipping method doesn't allow to configure the label
             # format, so once we get the tracking, we ask for it again.
             documents = self.cnexpress_get_label(tracking)
@@ -306,6 +335,13 @@ class DeliveryCarrier(models.Model):
             # label because there's clean way to override the one sent by core.
             body = _("CNE Shipping Documents")
             picking.message_post(body=body, attachments=documents)
+
+            # the documents is a url, we need to redirect to the url to print the label
+
+            http.redirect(
+            documents
+            )
+
             result.append(vals)
         return result
 
