@@ -9,7 +9,7 @@
     "author": "Steve",
     "license": "AGPL-3",
     "installable": True,
-    "depends": ["delivery_package_number", "delivery_state", "delivery_price_method"],
+    "depends": ["delivery_package_number", "delivery_state", "delivery_price_method", "sale_order_batch"],
     "data": [
         "security/ir.model.access.csv",
         "wizards/cnexpress_manifest_wizard_views.xml",

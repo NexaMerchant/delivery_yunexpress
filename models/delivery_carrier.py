@@ -343,8 +343,8 @@ class DeliveryCarrier(models.Model):
             # the documents is a url, we need to redirect to the url to print the label
 
             # update the sale order picking state to "sent"
-            if picking.sale_id and picking.sale_id.state == "sale":
-                picking.sale_id.state = "sent"
+            # if picking.sale_id and picking.sale_id.state == "sale":
+            #     picking.sale_id.state = "sent"
             # updte the sale order delivery date to now
             picking.sale_id.shipping_time = fields.Datetime.now()
 
