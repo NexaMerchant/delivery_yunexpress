@@ -3,6 +3,8 @@ from odoo.exceptions import UserError
 import logging
 from odoo.tools.config import config
 from odoo import http
+import requests
+import base64
 
 _logger = logging.getLogger(__name__)
 
@@ -283,10 +285,21 @@ class DeliveryCarrier(models.Model):
         print("cnexpress_send_shipping ctt_request")
         result = []
         for picking in pickings:
+
+            # Check if the picking is already shipped
+            if picking.state == "done":
+                raise UserError(_("This picking is already shipped."))
+            
+            # check if the picking has a tracking number and the same carrier
+            if picking.carrier_tracking_ref and picking.carrier_id == self:
+                raise UserError(_("This picking already has a tracking number."))
+
             vals = self._prepare_cnexpress_shipping(picking)
+
+            print(vals)
         
             try:
-                error, documents, tracking = ctt_request.manifest_shipping(vals)
+                error, documents, tracking = ctt_request.manifest_shipping(pickings=picking,shipping_values=vals)
                 self._ctt_check_error(error)
             except Exception as e:
                 raise (e)
@@ -302,19 +315,38 @@ class DeliveryCarrier(models.Model):
             picking.carrier_tracking_ref = tracking
             picking.update({"carrier_tracking_ref": tracking})
 
+            # Download the PDF document from the URL
+            response = requests.get(documents)
+            if response.status_code != 200:
+                raise Exception("Error in request")
+            pdf_content = response.content
+            
+            attachment = self.env['ir.attachment'].create({
+                'name': tracking + '.pdf',
+                'datas': base64.b64encode(pdf_content),
+                'db_datas': base64.b64encode(pdf_content),
+                'res_model': 'stock.picking',  # Attach to the stock.picking
+                'res_id': pickings.id,  # Attach to the current picking
+                'type': 'binary',
+                'mimetype': 'application/pdf',
+                'url': documents,
+            })
+
+
             # The default shipping method doesn't allow to configure the label
             # format, so once we get the tracking, we ask for it again.
-            documents = self.cnexpress_get_label(tracking)
+            #documents = self.cnexpress_get_label(tracking)
             # We post an extra message in the chatter with the barcode and the
             # label because there's clean way to override the one sent by core.
             body = _("CNE Shipping Documents")
-            picking.message_post(body=body, attachments=documents)
-
+            picking.message_post(body=body, attachments=attachment)
             # the documents is a url, we need to redirect to the url to print the label
 
-            http.redirect(
-            documents
-            )
+            # update the sale order picking state to "sent"
+            if picking.sale_id and picking.sale_id.state == "sale":
+                picking.sale_id.state = "sent"
+            # updte the sale order delivery date to now
+            picking.sale_id.shipping_time = fields.Datetime.now()
 
             result.append(vals)
         return result

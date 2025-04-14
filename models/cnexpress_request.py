@@ -7,6 +7,7 @@ import requests
 import hashlib
 import time
 import json
+import base64
 
 _logger = logging.getLogger(__name__)
 
@@ -125,7 +126,7 @@ class CNEExpressRequest:
         return response.json().get("Data")
 
 
-    def manifest_shipping(self, shipping_values):
+    def manifest_shipping(self, pickings, shipping_values):
         """Create shipping with the proper picking values
 
         :param dict shipping_values: Shippng values prepared from Odoo
@@ -177,8 +178,9 @@ class CNEExpressRequest:
             else:
                 cNo = response.json().get("cNo")
                 printUrl = response.json().get("printUrl")
-        # print("cNo: ", cNo)
-        # print("PrintUrl: ", printUrl)
+        print("cNo: ", cNo)
+        print("PrintUrl: ", printUrl)
+
 
         return (
             "1",
