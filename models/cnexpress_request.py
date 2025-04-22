@@ -144,6 +144,8 @@ class CNEExpressRequest:
         url = self.url + "/cgi-bin/EmsData.dll?DoApi"
         timestamp = str(int(time.time()*1000))
 
+        print("cne url" + url)
+
         data = {
             "RequestName": "PreInputSet",
             "icID": self.api_cid,
@@ -162,6 +164,8 @@ class CNEExpressRequest:
         _logger.info("Response Headers: %s", response.headers)
         _logger.info("Response Data: %s", response.text)
 
+        print("Request Data: ", response.text)
+
         cNo = ""
         printUrl = ""
 
@@ -170,6 +174,8 @@ class CNEExpressRequest:
             raise Exception("Error in request")
         if response.json().get("ReturnValue") == 0:
             raise Exception("Error in response")
+        if response.json().get("OK") == 0:
+            raise Exception(response.json().get("ErrList")[0].get("cMess"))
         if response.json().get("ReturnValue") > 0:
             ErrList = response.json().get("ErrList")
             if ErrList:

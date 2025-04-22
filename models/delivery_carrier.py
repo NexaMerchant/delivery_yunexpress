@@ -219,11 +219,11 @@ class DeliveryCarrier(models.Model):
         vatCode = None;
         iossCode = None;
 
-        if recipient.country_id.code == "UK":
-            vatCode = config.get("cnexpress_uk_vat_code", vatCode)
+        # if recipient.country_id.code == "UK":
+        vatCode = config.get("cnexpress_uk_vat_code", vatCode)
         
-        if recipient.country_id.code == "DE":
-            iossCode = config.get("cnexpress_eu_ioss_code", iossCode)
+        #if recipient.country_id.code == "DE":
+        iossCode = config.get("cnexpress_eu_ioss_code", iossCode)
 
         return {
             "cEmsKind": self.name.replace(" ",""),  # Optional
@@ -255,7 +255,7 @@ class DeliveryCarrier(models.Model):
             # order receiver email address
             "cRPhone": str(recipient.phone or recipient_entity.phone or ''),
             # order package weight
-            "fWeight": int(weight * 1000) or 1,  # Weight in grams
+            "fWeight": 1,  # Weight in grams
             # order memo
             "cMemo": None,  # Optional
             # order reserve
@@ -374,9 +374,11 @@ class DeliveryCarrier(models.Model):
         :param str reference: shipping reference
         :returns tuple: (file_content, file_name)
         """
-        self.ensure_one()
+        if not self:
+            return False
         if not reference:
             return False
+        self.ensure_one()
         ctt_request = self._ctt_request()
         try:
             error, label = ctt_request.get_documents_multi(
