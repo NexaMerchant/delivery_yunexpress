@@ -223,6 +223,12 @@ class DeliveryCarrier(models.Model):
         vatCode = config.get("cnexpress_uk_vat_code", vatCode)
         
         #if recipient.country_id.code == "DE":
+        # europe need to set the vatcode and ioss code
+        # vatCode = config.get("cnexpress_eu_vat_code", vatCode)
+        # iossCode = config.get("cnexpress_eu_ioss_code", iossCode)
+        # else:
+        # vatCode = config.get("cnexpress_eu_vat_code", vatCode)
+        # iossCode = config.get("cnexpress_eu_ioss_code", iossCode)
         iossCode = config.get("cnexpress_eu_ioss_code", iossCode)
 
         return {
