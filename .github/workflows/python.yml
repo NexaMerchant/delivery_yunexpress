@@ -1,0 +1,37 @@
+name: Python CI/CD
+
+on:
+  push:
+    branches:
+      - 'main'
+    paths-ignore:
+      - 'README.md'
+      - .github/**
+      - docs/**
+      - 'Dockerfile'
+  pull_request:
+    branches:
+      - 'main'
+    paths-ignore:
+      - 'README.md'
+      - 'Dockerfile'
+      - .github/**
+      - docs/**
+jobs:
+  laravel-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Sync to Server to ERP Server
+      uses: appleboy/ssh-action@master
+      env:
+        GITHUB_SHA_X: ${GITHUB_SHA}
+      with:
+        host: ${{ secrets.SSH_HOST_ERP }}  
+        username: ${{ secrets.SSH_USERNAME_ERP }}
+        key: ${{ secrets.DEPLOY_KEY_ERP }}
+        port: ${{secrets.SSH_PORT_ERP }}
+        script: |
+          cd /www/wwwroot/shell
+          ./batch_shell_composer_local.sh delivery_cnexpress > output.log 2>&1 &
+          echo "Script started in the background. Check output.log for details."
+
