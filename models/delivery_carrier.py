@@ -199,6 +199,9 @@ class DeliveryCarrier(models.Model):
         for move in picking.move_ids:
             # get the product name and quantity from the picking
             # get the product declared_name_cn and declared_name_en, declared_price
+            # if the move.product_id.declared_price is 0.0 and continue
+            if move.product_id.declared_price == 0.0:
+                continue
             goodslist.append(
                 {
                     "cxGoods": move.product_id.declared_name_en,
