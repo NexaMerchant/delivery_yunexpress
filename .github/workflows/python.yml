@@ -32,6 +32,6 @@ jobs:
         port: ${{secrets.SSH_PORT_ERP }}
         script: |
           cd /www/wwwroot/ops/
-          ./auto_return_and_update_odoo_module.sh delivery_cnexpress > output.log 2>&1 &
+          ./auto_return_and_update_odoo_module.sh delivery_yunexpress > output.log 2>&1 &
           echo "Script started in the background. Check output.log for details."
 
