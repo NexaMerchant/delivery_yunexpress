@@ -12,8 +12,8 @@ import base64
 _logger = logging.getLogger(__name__)
 
 CNEXPRESS_API_URL = {
-    "test": "https://api.cne.com",
-    "prod": "https://api.cne.com",
+    "test": "http://omsapi.uat.yunexpress.com",
+    "prod": "http://oms.api.yunexpress.com",
 }
 
 
