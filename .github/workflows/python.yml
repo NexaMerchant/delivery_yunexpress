@@ -31,7 +31,7 @@ jobs:
         key: ${{ secrets.DEPLOY_KEY_ERP }}
         port: ${{secrets.SSH_PORT_ERP }}
         script: |
-          cd /www/wwwroot/shell
-          ./batch_shell_composer_local.sh delivery_cnexpress > output.log 2>&1 &
+          cd /www/wwwroot/ops/
+          ./auto_return_and_update_odoo_module.sh delivery_cnexpress > output.log 2>&1 &
           echo "Script started in the background. Check output.log for details."
 
