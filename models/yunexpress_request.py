@@ -11,7 +11,7 @@ import base64
 
 _logger = logging.getLogger(__name__)
 
-CNEXPRESS_API_URL = {
+YUNEXPRESS_API_URL = {
     "test": "http://omsapi.uat.yunexpress.com",
     "prod": "http://oms.api.yunexpress.com",
 }
@@ -22,34 +22,20 @@ class YUNExpressRequest:
     Abstract Yun Express API Operations to connect them with Odoo
     """
     api_cid = False
-    api_token = False
+    api_secret = False
 
-    def __init__(self, api_cid, api_token, prod=False):
+    def __init__(self, api_cid, api_secret, prod=False):
         self.api_cid = api_cid
-        self.api_token = api_token
+        self.api_secret = api_secret
         # We'll store raw xml request/responses in this properties
         self.ctt_last_request = False
         self.ctt_last_response = False
-        self.url = CNEXPRESS_API_URL["prod"] if prod else CNEXPRESS_API_URL["test"]
+        self.url = YUNEXPRESS_API_URL["prod"] if prod else YUNEXPRESS_API_URL["test"]
         self.headers = {
-            "Content-Type": "application/json;charset=UTF-8"
+            "Content-Type": "application/json;charset=UTF-8",
+            "Accept": "application/json",
         }
-        # print("init")
-        # print(self.api_cid)
-        # print(self.api_token)
 
-    def get_secret(self, timestamp):
-        # Generate the secret key for the API
-        # The secret is a md5 hash of the api_cid, timestamp and api_token
-
-        print("api_cid: " + self.api_cid)
-        print("api_token: " + self.api_token)
-        print("timestamp: " + timestamp)
-        combined = (str(self.api_cid) + str(timestamp) + self.api_token).encode('utf-8')
-        # md5 hash
-        secret = hashlib.md5(combined).hexdigest()
-        # unlowercase
-        return secret.lower()
 
     @staticmethod
     def _format_error(error):

@@ -8,9 +8,6 @@ import base64
 
 _logger = logging.getLogger(__name__)
 
-from .yunexpress_master_data import (
-    CNEXPRESS_CHANNELS,
-)
 from .yunexpress_request import YUNExpressRequest
 
 
@@ -25,14 +22,11 @@ class DeliveryCarrier(models.Model):
         string="API Client ID",
         help="Yun Express API Client ID. This is the user used to connect to the API.",
     )
-    yunexpress_api_token = fields.Char(
-        string="API Token",
-        help="Yun Express API Token. This is the password used to connect to the API.",
+    yunexpress_api_secret = fields.Char(
+        string="API Secret",
+        help="Yun Express API Secret. This is the password used to connect to the API.",
     )
-    yunexpress_channel = fields.Selection(
-        selection=CNEXPRESS_CHANNELS,
-        string="Channel",
-    )
+
     yunexpress_document_model_code = fields.Selection(
         selection=[
             ("SINGLE", "Single"),
@@ -426,7 +420,7 @@ class DeliveryCarrier(models.Model):
         )
         current_tracking = trackings.pop()
         picking.tracking_state = self._yunexpress_format_tracking(current_tracking)
-        picking.delivery_state = CNEXPRESS_DELIVERY_STATES_STATIC.get(
+        picking.delivery_state = YUNEXPRESS_DELIVERY_STATES_STATIC.get(
             current_tracking["StatusCode"], "incidence"
         )
 
