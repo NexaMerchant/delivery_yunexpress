@@ -8,32 +8,32 @@ import base64
 
 _logger = logging.getLogger(__name__)
 
-from .cnexpress_master_data import (
+from .yunexpress_master_data import (
     CNEXPRESS_CHANNELS,
 )
-from .cnexpress_request import CNEExpressRequest
+from .yunexpress_request import YUNExpressRequest
 
 
 class DeliveryCarrier(models.Model):
     _inherit = "delivery.carrier"
 
     delivery_type = fields.Selection(
-        selection_add=[("cnexpress", "CNE Express")],
-        ondelete={"cnexpress": "set default"},
+        selection_add=[("yunexpress", "Yun Express")],
+        ondelete={"yunexpress": "set default"},
     )
-    cnexpress_api_cid = fields.Char(
+    yunexpress_api_cid = fields.Char(
         string="API Client ID",
-        help="CNE Express API Client ID. This is the user used to connect to the API.",
+        help="Yun Express API Client ID. This is the user used to connect to the API.",
     )
-    cnexpress_api_token = fields.Char(
+    yunexpress_api_token = fields.Char(
         string="API Token",
-        help="CNE Express API Token. This is the password used to connect to the API.",
+        help="Yun Express API Token. This is the password used to connect to the API.",
     )
-    cnexpress_channel = fields.Selection(
+    yunexpress_channel = fields.Selection(
         selection=CNEXPRESS_CHANNELS,
         string="Channel",
     )
-    cnexpress_document_model_code = fields.Selection(
+    yunexpress_document_model_code = fields.Selection(
         selection=[
             ("SINGLE", "Single"),
             ("MULTI1", "Multi 1"),
@@ -43,44 +43,44 @@ class DeliveryCarrier(models.Model):
         default="SINGLE",
         string="Document model",
     )
-    cnexpress_document_format = fields.Selection(
+    yunexpress_document_format = fields.Selection(
         selection=[("PDF", "PDF"), ("PNG", "PNG"), ("BMP", "BMP")],
         default="PDF",
         string="Document format",
     )
-    cnexpress_document_offset = fields.Integer(string="Document Offset")
+    yunexpress_document_offset = fields.Integer(string="Document Offset")
 
     @api.onchange("delivery_type")
     def _onchange_delivery_type_ctt(self):
         """Default price method for CNE as the API can't gather prices."""
-        if self.delivery_type == "cnexpress":
+        if self.delivery_type == "yunexpress":
             self.price_method = "base_on_rule"
 
     def _ctt_request(self):
         """Get CNE Request object
 
-        :return CNEExpressRequest: CNE Express Request object
+        :return YUNExpressRequest: Yun Express Request object
         """
-        _logger.debug("cnexpress_api_cid: %s", self.cnexpress_api_cid)
-        if not self.cnexpress_api_cid:
-            _logger.warning("cnexpress_api_cid is False, please check configuration.")
+        _logger.debug("yunexpress_api_cid: %s", self.yunexpress_api_cid)
+        if not self.yunexpress_api_cid:
+            _logger.warning("yunexpress_api_cid is False, please check configuration.")
         record_values = self.read()[0]
-        _logger.debug("cnexpress_api_token: %s", record_values["cnexpress_api_token"])
-        if self.cnexpress_api_token is False:
+        _logger.debug("yunexpress_api_token: %s", record_values["yunexpress_api_token"])
+        if self.yunexpress_api_token is False:
             # read the value from the configuration
-            _logger.warning("cnexpress_api_token is False, please check configuration.")
-            self.cnexpress_api_token = config.get(
-                "cne_api_secret", self.cnexpress_api_token
+            _logger.warning("yunexpress_api_token is False, please check configuration.")
+            self.yunexpress_api_token = config.get(
+                "cne_api_secret", self.yunexpress_api_token
             )
-        if self.cnexpress_api_cid is False:
-            self.cnexpress_api_cid = config.get(
-                "cne_api_cid", self.cnexpress_api_cid
+        if self.yunexpress_api_cid is False:
+            self.yunexpress_api_cid = config.get(
+                "cne_api_cid", self.yunexpress_api_cid
             )
         
 
-        return CNEExpressRequest(
-            api_cid=self.cnexpress_api_cid,
-            api_token=self.cnexpress_api_token,
+        return YUNExpressRequest(
+            api_cid=self.yunexpress_api_cid,
+            api_token=self.yunexpress_api_token,
             prod=self.prod_environment,
         )
 
@@ -88,7 +88,7 @@ class DeliveryCarrier(models.Model):
     def _ctt_log_request(self, ctt_request):
         """When debug is active requests/responses will be logged in ir.logging
 
-        :param ctt_request ctt_request: CNE Express request object
+        :param ctt_request ctt_request: Yun Express request object
         """
         self.log_xml(ctt_request.ctt_last_request, "ctt_request")
         self.log_xml(ctt_request.ctt_last_response, "ctt_response")
@@ -111,10 +111,10 @@ class DeliveryCarrier(models.Model):
             error_msg += "{} - {}\n".format(code, msg)
         if not error_msg:
             return
-        raise UserError(_("CNE Express Error:\n\n%s") % error_msg)
+        raise UserError(_("Yun Express Error:\n\n%s") % error_msg)
 
     @api.model
-    def _cnexpress_format_tracking(self, tracking):
+    def _yunexpress_format_tracking(self, tracking):
         """Helper to forma tracking history strings
 
         :param OrderedDict tracking: CNE tracking values
@@ -131,13 +131,13 @@ class DeliveryCarrier(models.Model):
             )
         return status
 
-    @api.onchange("cnexpress_shipping_type")
-    def _onchange_cnexpress_shipping_type(self):
+    @api.onchange("yunexpress_shipping_type")
+    def _onchange_yunexpress_shipping_type(self):
         """Control service validity according to credentials
 
         :raises UserError: We list the available services for given credentials
         """
-        if not self.cnexpress_shipping_type:
+        if not self.yunexpress_shipping_type:
             return
         # Avoid checking if credentianls aren't setup or are invalid
         ctt_request = self._ctt_request()
@@ -145,15 +145,15 @@ class DeliveryCarrier(models.Model):
         self._ctt_log_request(ctt_request)
         self._ctt_check_error(error)
         type_codes, type_descriptions = zip(*service_types)
-        if self.cnexpress_shipping_type not in type_codes:
+        if self.yunexpress_shipping_type not in type_codes:
             service_name = dict(
-                self._fields["cnexpress_shipping_type"]._description_selection(
+                self._fields["yunexpress_shipping_type"]._description_selection(
                     self.env
                 )
-            )[self.cnexpress_shipping_type]
+            )[self.yunexpress_shipping_type]
             raise UserError(
                 _(
-                    "This CNE Express service (%(service_name)s) isn't allowed for "
+                    "This Yun Express service (%(service_name)s) isn't allowed for "
                     "this account configuration. Please choose one of the followings\n"
                     "%(type_descriptions)s",
                     service_name=service_name,
@@ -171,8 +171,8 @@ class DeliveryCarrier(models.Model):
         error = ctt_request.validate_user()
         self._ctt_log_request(ctt_request)
 
-    def _prepare_cnexpress_shipping(self, picking):
-        """Convert picking values for CNE Express API
+    def _prepare_yunexpress_shipping(self, picking):
+        """Convert picking values for Yun Express API
 
         :param record picking: `stock.picking` record
         :return dict: Values prepared for the CNE connector
@@ -223,16 +223,16 @@ class DeliveryCarrier(models.Model):
         iossCode = None;
 
         # if recipient.country_id.code == "UK":
-        vatCode = config.get("cnexpress_eu_vat_code", vatCode)
+        vatCode = config.get("yunexpress_eu_vat_code", vatCode)
         
         #if recipient.country_id.code == "DE":
         # europe need to set the vatcode and ioss code
-        # vatCode = config.get("cnexpress_eu_vat_code", vatCode)
-        # iossCode = config.get("cnexpress_eu_ioss_code", iossCode)
+        # vatCode = config.get("yunexpress_eu_vat_code", vatCode)
+        # iossCode = config.get("yunexpress_eu_ioss_code", iossCode)
         # else:
-        # vatCode = config.get("cnexpress_eu_vat_code", vatCode)
-        # iossCode = config.get("cnexpress_eu_ioss_code", iossCode)
-        iossCode = config.get("cnexpress_eu_ioss_code", iossCode)
+        # vatCode = config.get("yunexpress_eu_vat_code", vatCode)
+        # iossCode = config.get("yunexpress_eu_ioss_code", iossCode)
+        iossCode = config.get("yunexpress_eu_ioss_code", iossCode)
 
         return {
             "cEmsKind": self.name.replace(" ",""),  # Optional
@@ -279,19 +279,19 @@ class DeliveryCarrier(models.Model):
             "GoodsList": goodslist
         }
 
-    def cnexpress_send_shipping(self, pickings):
-        """CNE Express wildcard method called when a picking is confirmed
+    def yunexpress_send_shipping(self, pickings):
+        """Yun Express wildcard method called when a picking is confirmed
 
         :param record pickings: `stock.picking` recordset
         :raises UserError: On any API error
         :return dict: With tracking number and delivery price (always 0)
         """
-        print("cnexpress_send_shipping")
+        print("yunexpress_send_shipping")
         ctt_request = self._ctt_request()
-        print("cnexpress_send_shipping ctt_request")
-        print(self.cnexpress_api_cid)
+        print("yunexpress_send_shipping ctt_request")
+        print(self.yunexpress_api_cid)
         print(ctt_request.ctt_last_request)
-        print("cnexpress_send_shipping ctt_request")
+        print("yunexpress_send_shipping ctt_request")
         result = []
         for picking in pickings:
 
@@ -303,7 +303,7 @@ class DeliveryCarrier(models.Model):
             if picking.carrier_tracking_ref and picking.carrier_id == self:
                 raise UserError(_("This picking already has a tracking number."))
 
-            vals = self._prepare_cnexpress_shipping(picking)
+            vals = self._prepare_yunexpress_shipping(picking)
 
             print(vals)
         
@@ -344,7 +344,7 @@ class DeliveryCarrier(models.Model):
 
             # The default shipping method doesn't allow to configure the label
             # format, so once we get the tracking, we ask for it again.
-            #documents = self.cnexpress_get_label(tracking)
+            #documents = self.yunexpress_get_label(tracking)
             # We post an extra message in the chatter with the barcode and the
             # label because there's clean way to override the one sent by core.
             body = _("CNE Shipping Documents")
@@ -360,7 +360,7 @@ class DeliveryCarrier(models.Model):
             result.append(vals)
         return result
 
-    def cnexpress_cancel_shipment(self, pickings):
+    def yunexpress_cancel_shipment(self, pickings):
         """Cancel the expedition
 
         :param recordset: pickings `stock.picking` recordset
@@ -377,7 +377,7 @@ class DeliveryCarrier(models.Model):
                 self._ctt_log_request(ctt_request)
         return True
 
-    def cnexpress_get_label(self, reference):
+    def yunexpress_get_label(self, reference):
         """Generate label for picking
 
         :param str reference: shipping reference
@@ -392,9 +392,9 @@ class DeliveryCarrier(models.Model):
         try:
             error, label = ctt_request.get_documents_multi(
                 reference,
-                model_code=self.cnexpress_document_model_code,
-                kind_code=self.cnexpress_document_format,
-                offset=self.cnexpress_document_offset,
+                model_code=self.yunexpress_document_model_code,
+                kind_code=self.yunexpress_document_format,
+                offset=self.yunexpress_document_offset,
             )
             self._ctt_check_error(error)
         except Exception as e:
@@ -405,8 +405,8 @@ class DeliveryCarrier(models.Model):
             return False
         return label
 
-    def cnexpress_tracking_state_update(self, picking):
-        """Wildcard method for CNE Express tracking followup
+    def yunexpress_tracking_state_update(self, picking):
+        """Wildcard method for Yun Express tracking followup
 
         :param recod picking: `stock.picking` record
         """
@@ -422,16 +422,16 @@ class DeliveryCarrier(models.Model):
         finally:
             self._ctt_log_request(ctt_request)
         picking.tracking_state_history = "\n".join(
-            [self._cnexpress_format_tracking(tracking) for tracking in trackings]
+            [self._yunexpress_format_tracking(tracking) for tracking in trackings]
         )
         current_tracking = trackings.pop()
-        picking.tracking_state = self._cnexpress_format_tracking(current_tracking)
+        picking.tracking_state = self._yunexpress_format_tracking(current_tracking)
         picking.delivery_state = CNEXPRESS_DELIVERY_STATES_STATIC.get(
             current_tracking["StatusCode"], "incidence"
         )
 
-    def cnexpress_get_tracking_link(self, picking):
-        """Wildcard method for CNE Express tracking link.
+    def yunexpress_get_tracking_link(self, picking):
+        """Wildcard method for Yun Express tracking link.
 
         :param record picking: `stock.picking` record
         :return str: tracking url

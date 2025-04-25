@@ -1,2 +1,2 @@
-from . import cnexpress_manifest_wizard
-from . import cnexpress_pickup_wizard
+from . import yunexpress_manifest_wizard
+from . import yunexpress_pickup_wizard

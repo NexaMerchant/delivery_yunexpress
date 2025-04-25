@@ -1,3 +1,3 @@
 The development of this module has been financially supported by:
 
-* `CNE Express <https://www.cnexpress.com/>`_:
+* `Yun Express <https://www.yunexpress.com/>`_:

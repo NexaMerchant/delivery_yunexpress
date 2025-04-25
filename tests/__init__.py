@@ -1,2 +1,2 @@
 # Disabled as the provider's test environment isn't stable enough
-# from . import test_delivery_cnexpress
+# from . import test_delivery_yunexpress

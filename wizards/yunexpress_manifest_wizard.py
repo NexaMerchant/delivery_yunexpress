@@ -6,8 +6,8 @@ from odoo import fields, models
 
 
 class CNEExpressManifestWizard(models.TransientModel):
-    _name = "cnexpress.manifest.wizard"
-    _description = "Get the CNE Express Manifest for the given date range"
+    _name = "yunexpress.manifest.wizard"
+    _description = "Get the Yun Express Manifest for the given date range"
 
     document_type = fields.Selection(
         selection=[("XLSX", "Excel"), ("PDF", "PDF")],
@@ -20,7 +20,7 @@ class CNEExpressManifestWizard(models.TransientModel):
     carrier_ids = fields.Many2many(
         string="Filter accounts",
         comodel_name="delivery.carrier",
-        domain=[("delivery_type", "=", "cnexpress")],
+        domain=[("delivery_type", "=", "yunexpress")],
         help="Leave empty to gather all the CNE account manifests",
     )
     state = fields.Selection(
@@ -35,21 +35,21 @@ class CNEExpressManifestWizard(models.TransientModel):
     def get_manifest(self):
         """List of shippings for the given dates as CNE provides them"""
         carriers = self.carrier_ids or self.env["delivery.carrier"].search(
-            [("delivery_type", "=", "cnexpress")]
+            [("delivery_type", "=", "yunexpress")]
         )
         # Avoid getting repeated manifests. Carriers with different service
         # configuration would produce the same manifest.
         unique_accounts = {
-            (c.cnexpress_customer, c.cnexpress_contract, c.cnexpress_agency)
+            (c.yunexpress_customer, c.yunexpress_contract, c.yunexpress_agency)
             for c in carriers
         }
         filtered_carriers = self.env["delivery.carrier"]
         for customer, contract, agency in unique_accounts:
             filtered_carriers += fields.first(
                 carriers.filtered(
-                    lambda x: x.cnexpress_customer == customer
-                    and x.cnexpress_contract == contract
-                    and x.cnexpress_agency == agency
+                    lambda x: x.yunexpress_customer == customer
+                    and x.yunexpress_contract == contract
+                    and x.yunexpress_agency == agency
                 )
             )
         for carrier in filtered_carriers:
@@ -63,9 +63,9 @@ class CNEExpressManifestWizard(models.TransientModel):
             carrier._ctt_log_request(ctt_request)
             for _filename, file in manifest:
                 filename = "{}{}{}-{}-{}.{}".format(
-                    carrier.cnexpress_customer,
-                    carrier.cnexpress_contract,
-                    carrier.cnexpress_agency,
+                    carrier.yunexpress_customer,
+                    carrier.yunexpress_contract,
+                    carrier.yunexpress_agency,
                     from_date.replace("-", ""),
                     to_date.replace("-", ""),
                     self.document_type.lower(),
@@ -82,7 +82,7 @@ class CNEExpressManifestWizard(models.TransientModel):
         self.state = "done"
         return dict(
             self.env["ir.actions.act_window"]._for_xml_id(
-                "delivery_cnexpress.action_delivery_cnexpress_manifest_wizard"
+                "delivery_yunexpress.action_delivery_yunexpress_manifest_wizard"
             ),
             res_id=self.id,
         )

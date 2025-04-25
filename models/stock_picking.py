@@ -7,18 +7,18 @@ from odoo import _, models
 class StockPicking(models.Model):
     _inherit = "stock.picking"
 
-    def cnexpress_get_label(self):
+    def yunexpress_get_label(self):
         """Get label for current picking
 
         :return tuple: (filename, filecontent)
         """
         self.ensure_one()
         tracking_ref = self.carrier_tracking_ref
-        if self.delivery_type != "cnexpress" or not tracking_ref:
+        if self.delivery_type != "yunexpress" or not tracking_ref:
             return
-        label = self.carrier_id.cnexpress_get_label(tracking_ref)
+        label = self.carrier_id.yunexpress_get_label(tracking_ref)
         self.message_post(
-            body=(_("CNE Express label for %s") % tracking_ref),
+            body=(_("Yun Express label for %s") % tracking_ref),
             attachments=label,
         )
         return label

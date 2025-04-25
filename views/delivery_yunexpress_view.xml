@@ -8,30 +8,30 @@
         <field name="arch" type="xml">
             <xpath expr="//div[@name='button_box']" position="inside">
                 <button
-                    name="%(delivery_cnexpress.action_delivery_cnexpress_pickup_wizard)d"
+                    name="%(delivery_yunexpress.action_delivery_yunexpress_pickup_wizard)d"
                     type="action"
                     class="oe_stat_button"
                     icon="fa-truck"
                     string="Pickup request"
                     context="{'default_carrier_id': active_id}"
-                    attrs="{'invisible': [('delivery_type', '!=', 'cnexpress')]}"
+                    attrs="{'invisible': [('delivery_type', '!=', 'yunexpress')]}"
                 />
             </xpath>
             <xpath expr="//notebook/page[1]" position='before'>
                 <page
-                    string="CNE Express Configuration"
-                    attrs="{'invisible': [('delivery_type', '!=', 'cnexpress')]}"
+                    string="Yun Express Configuration"
+                    attrs="{'invisible': [('delivery_type', '!=', 'yunexpress')]}"
                 >
                     <group>
                         <group string="Connection">
                             <field
-                                name="cnexpress_api_cid"
-                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                                name="yunexpress_api_cid"
+                                attrs="{'required': [('delivery_type', '=', 'yunexpress')]}"
                             />
 
                             <field
-                                name="cnexpress_api_token"
-                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                                name="yunexpress_api_token"
+                                attrs="{'required': [('delivery_type', '=', 'yunexpress')]}"
                             />
 
                             <button
@@ -44,22 +44,22 @@
                         </group>
                         <group string="Shipping">
                             <field
-                                name="cnexpress_channel"
-                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                                name="yunexpress_channel"
+                                attrs="{'required': [('delivery_type', '=', 'yunexpress')]}"
                             />
                         </group>
                         <group string="Label format">
                             <field
-                                name="cnexpress_document_model_code"
-                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                                name="yunexpress_document_model_code"
+                                attrs="{'required': [('delivery_type', '=', 'yunexpress')]}"
                             />
                             <field
-                                name="cnexpress_document_format"
-                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                                name="yunexpress_document_format"
+                                attrs="{'required': [('delivery_type', '=', 'yunexpress')]}"
                             />
                             <field
-                                name="cnexpress_document_offset"
-                                attrs="{'required': [('delivery_type', '=', 'cnexpress')]}"
+                                name="yunexpress_document_offset"
+                                attrs="{'required': [('delivery_type', '=', 'yunexpress')]}"
                             />
                         </group>
                     </group>

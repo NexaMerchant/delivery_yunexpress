@@ -10,14 +10,14 @@ License AGPL-3.0 or later (https://www.gnu.org/licenses/agpl).
         <field name="arch" type="xml">
             <xpath expr="//header" position='inside'>
                 <button
-                    name="cnexpress_get_label"
-                    string="CNE Express Label"
+                    name="yunexpress_get_label"
+                    string="Yun Express Label"
                     type="object"
                     attrs="{'invisible':[
                         '|',
                         '|',
                         ('carrier_tracking_ref', '=', False),
-                        ('delivery_type', '!=', 'cnexpress'),
+                        ('delivery_type', '!=', 'yunexpress'),
                         ('state', '!=', 'done')
                     ]}"
                 />

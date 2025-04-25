@@ -12,9 +12,9 @@
     "depends": ["delivery_package_number", "delivery_state", "delivery_price_method", "sale_order_batch"],
     "data": [
         "security/ir.model.access.csv",
-        "wizards/cnexpress_manifest_wizard_views.xml",
-        "wizards/cnexpress_pickup_wizard.xml",
-        "views/delivery_cnexpress_view.xml",
+        "wizards/yunexpress_manifest_wizard_views.xml",
+        "wizards/yunexpress_pickup_wizard.xml",
+        "views/delivery_yunexpress_view.xml",
         "views/stock_picking_views.xml",
     ],
 }

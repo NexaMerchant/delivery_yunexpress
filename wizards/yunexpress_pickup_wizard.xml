@@ -1,9 +1,9 @@
 <odoo>
     <record model="ir.ui.view" id="delivery_pickup_wizard_form">
-        <field name="model">cnexpress.pickup.wizard</field>
+        <field name="model">yunexpress.pickup.wizard</field>
         <field name="type">form</field>
         <field name="arch" type="xml">
-            <form string="CNE Express Pickup Report">
+            <form string="Yun Express Pickup Report">
                 <field name="state" invisible="1" />
                 <group attrs="{'invisible': [('state', '=', 'done')]}">
                     <group name="config">
@@ -31,9 +31,9 @@
             </form>
         </field>
     </record>
-    <record id="action_delivery_cnexpress_pickup_wizard" model="ir.actions.act_window">
-        <field name="name">CNE Express Pickup Request</field>
-        <field name="res_model">cnexpress.pickup.wizard</field>
+    <record id="action_delivery_yunexpress_pickup_wizard" model="ir.actions.act_window">
+        <field name="name">Yun Express Pickup Request</field>
+        <field name="res_model">yunexpress.pickup.wizard</field>
         <field name="view_mode">form</field>
         <field name="target">new</field>
     </record>

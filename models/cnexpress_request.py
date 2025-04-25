@@ -17,9 +17,9 @@ CNEXPRESS_API_URL = {
 }
 
 
-class CNEExpressRequest:
-    """Interface between CNE Express SOAP API and Odoo recordset.
-    Abstract CNE Express API Operations to connect them with Odoo
+class YUNExpressRequest:
+    """Interface between Yun Express SOAP API and Odoo recordset.
+    Abstract Yun Express API Operations to connect them with Odoo
     """
     api_cid = False
     api_token = False

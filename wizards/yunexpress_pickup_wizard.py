@@ -2,12 +2,12 @@ from odoo import api, fields, models
 
 
 class CNEExpressPickupWizard(models.TransientModel):
-    _name = "cnexpress.pickup.wizard"
+    _name = "yunexpress.pickup.wizard"
     _description = "Generate shipping pickups"
 
     carrier_id = fields.Many2one(
         comodel_name="delivery.carrier",
-        domain=[("delivery_type", "=", "cnexpress")],
+        domain=[("delivery_type", "=", "yunexpress")],
     )
     delivery_date = fields.Date(required=True, default=fields.Date.context_today)
     min_hour = fields.Float(required=True)
@@ -50,7 +50,7 @@ class CNEExpressPickupWizard(models.TransientModel):
         self.state = "done"
         return dict(
             self.env["ir.actions.act_window"]._for_xml_id(
-                "delivery_cnexpress.action_delivery_cnexpress_pickup_wizard"
+                "delivery_yunexpress.action_delivery_yunexpress_pickup_wizard"
             ),
             res_id=self.id,
         )

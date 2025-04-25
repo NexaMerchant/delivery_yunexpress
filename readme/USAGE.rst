@@ -1,16 +1,16 @@
 The shipping codes are generated when a stock picking which carrier is configured
-for CNE Express as a provider is validated. The label is generated and attached to
+for Yun Express as a provider is validated. The label is generated and attached to
 the document according to the label generation parameters configured before.
 
 In case you accidentally delete the label attachment, you can generate it again clicking
-on the *CNE Express Label* button on the top of the picking form.
+on the *Yun Express Label* button on the top of the picking form.
 
 As usual, to cancel the shipping, go to the *Additional Information* tab and click on
 the *Cancel delivery* action next to the *Shipping code* field.
 
 To print the shippings manifest between dates, go to:
 
-#. *Inventory > Reports > CNE Express Manifest*
+#. *Inventory > Reports > Yun Express Manifest*
 #. In the wizard we can configure the document format (Excel or PDF) and the date to
    comprehend.
 #. We can filter delivery methods as well in case we handle different CNE accounts.
