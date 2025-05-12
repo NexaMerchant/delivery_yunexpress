@@ -30,7 +30,7 @@
                             />
 
                             <field
-                                name="yunexpress_api_token"
+                                name="yunexpress_api_secret"
                                 attrs="{'required': [('delivery_type', '=', 'yunexpress')]}"
                             />
 
@@ -42,12 +42,7 @@
                                 icon="fa-plug"
                             />
                         </group>
-                        <group string="Shipping">
-                            <field
-                                name="yunexpress_channel"
-                                attrs="{'required': [('delivery_type', '=', 'yunexpress')]}"
-                            />
-                        </group>
+
                         <group string="Label format">
                             <field
                                 name="yunexpress_document_model_code"

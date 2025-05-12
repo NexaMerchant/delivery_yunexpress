@@ -59,12 +59,12 @@ class DeliveryCarrier(models.Model):
         if not self.yunexpress_api_cid:
             _logger.warning("yunexpress_api_cid is False, please check configuration.")
         record_values = self.read()[0]
-        _logger.debug("yunexpress_api_token: %s", record_values["yunexpress_api_token"])
-        if self.yunexpress_api_token is False:
+        _logger.debug("yunexpress_api_secret: %s", record_values["yunexpress_api_secret"])
+        if self.yunexpress_api_secret is False:
             # read the value from the configuration
-            _logger.warning("yunexpress_api_token is False, please check configuration.")
-            self.yunexpress_api_token = config.get(
-                "cne_api_secret", self.yunexpress_api_token
+            _logger.warning("yunexpress_api_secret is False, please check configuration.")
+            self.yunexpress_api_secret = config.get(
+                "cne_api_secret", self.yunexpress_api_secret
             )
         if self.yunexpress_api_cid is False:
             self.yunexpress_api_cid = config.get(
@@ -74,7 +74,7 @@ class DeliveryCarrier(models.Model):
 
         return YUNExpressRequest(
             api_cid=self.yunexpress_api_cid,
-            api_token=self.yunexpress_api_token,
+            api_token=self.yunexpress_api_secret,
             prod=self.prod_environment,
         )
 
