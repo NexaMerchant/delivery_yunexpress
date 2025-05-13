@@ -13,7 +13,7 @@ To print the shippings manifest between dates, go to:
 #. *Inventory > Reports > Yun Express Manifest*
 #. In the wizard we can configure the document format (Excel or PDF) and the date to
    comprehend.
-#. We can filter delivery methods as well in case we handle different CNE accounts.
+#. We can filter delivery methods as well in case we handle different YUN accounts.
 #. Click on *Get Manifest* to gather the requested files.
 
 To make an scheduled shippings pickup request:

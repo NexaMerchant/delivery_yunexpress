@@ -21,7 +21,7 @@ class CNEExpressManifestWizard(models.TransientModel):
         string="Filter accounts",
         comodel_name="delivery.carrier",
         domain=[("delivery_type", "=", "yunexpress")],
-        help="Leave empty to gather all the CNE account manifests",
+        help="Leave empty to gather all the YUN account manifests",
     )
     state = fields.Selection(
         selection=[("new", "new"), ("done", "done")],
@@ -33,7 +33,7 @@ class CNEExpressManifestWizard(models.TransientModel):
     )
 
     def get_manifest(self):
-        """List of shippings for the given dates as CNE provides them"""
+        """List of shippings for the given dates as YUN provides them"""
         carriers = self.carrier_ids or self.env["delivery.carrier"].search(
             [("delivery_type", "=", "yunexpress")]
         )

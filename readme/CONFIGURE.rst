@@ -6,7 +6,7 @@ To configure your Yun Express services, go to:
 
 #. *Inventory/Sales > Configuration > Delivery methods* and create a new one.
 #. Choose *Yun Express* as provider.
-#. Configure your CNE credentials: contract, agency, customer code, user and password.
+#. Configure your YUN credentials: contract, agency, customer code, user and password.
 #. Configure your label format:
 
    - Single: Thermal printer (single label).

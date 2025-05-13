@@ -3,7 +3,7 @@
 
 # Master Data provided by Yun Express
 
-# CNE Chnnel
+# YUN Chnnel
 YUNEXPRESS_CHANNELS = [
     ("THPHR","云途全球专线挂号（特惠普货）"),
     ("THZXR","云途全球专线挂号（特惠带电）"),

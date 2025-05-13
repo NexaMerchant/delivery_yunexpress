@@ -18,7 +18,7 @@ class TestDeliveryCNEExpress(common.TransactionCase):
                 "product_id": cls.shipping_product.id,
                 "debug_logging": True,
                 "prod_environment": False,
-                # CNE will maintain these credentials in order to allow OCA testing
+                # YUN will maintain these credentials in order to allow OCA testing
                 "yunexpress_user": "000002ODOO1",
                 "yunexpress_password": "CAL%224271",
                 "yunexpress_agency": "000002",

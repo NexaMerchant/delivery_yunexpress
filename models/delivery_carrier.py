@@ -56,12 +56,12 @@ class DeliveryCarrier(models.Model):
 
     @api.onchange("delivery_type")
     def _onchange_delivery_type_yun(self):
-        """Default price method for CNE as the API can't gather prices."""
+        """Default price method for YUN as the API can't gather prices."""
         if self.delivery_type == "yunexpress":
             self.price_method = "base_on_rule"
 
     def _yun_request(self):
-        """Get CNE Request object
+        """Get YUN Request object
 
         :return YUNExpressRequest: Yun Express Request object
         """
@@ -121,7 +121,7 @@ class DeliveryCarrier(models.Model):
     def _yunexpress_format_tracking(self, tracking):
         """Helper to forma tracking history strings
 
-        :param OrderedDict tracking: CNE tracking values
+        :param OrderedDict tracking: YUN tracking values
         :return str: Tracking line
         """
         status = "{} - [{}] {}".format(
@@ -179,7 +179,7 @@ class DeliveryCarrier(models.Model):
         """Convert picking values for Yun Express API
 
         :param record picking: `stock.picking` record
-        :return dict: Values prepared for the CNE connector
+        :return dict: Values prepared for the YUN connector
         """
         self.ensure_one()
         # A picking can be delivered from any warehouse

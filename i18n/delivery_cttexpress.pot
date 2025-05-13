@@ -140,7 +140,7 @@ msgstr ""
 #. odoo-python
 #: code:addons/delivery_yunexpress/models/delivery_carrier.py:0
 #, python-format
-msgid "CNE Shipping Documents"
+msgid "YUN Shipping Documents"
 msgstr ""
 
 #. module: delivery_yunexpress
@@ -299,7 +299,7 @@ msgstr ""
 
 #. module: delivery_yunexpress
 #: model:ir.model.fields,help:delivery_yunexpress.field_yunexpress_manifest_wizard__carrier_ids
-msgid "Leave empty to gather all the CNE account manifests"
+msgid "Leave empty to gather all the YUN account manifests"
 msgstr ""
 
 #. module: delivery_yunexpress

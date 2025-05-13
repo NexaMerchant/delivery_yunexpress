@@ -146,8 +146,8 @@ msgstr "Etichetta Yun Express per %s"
 #. odoo-python
 #: code:addons/delivery_yunexpress/models/delivery_carrier.py:0
 #, python-format
-msgid "CNE Shipping Documents"
-msgstr "Documento spedizione CNE"
+msgid "YUN Shipping Documents"
+msgstr "Documento spedizione YUN"
 
 #. module: delivery_yunexpress
 #: model_terms:ir.ui.view,arch_db:delivery_yunexpress.delivery_manifest_wizard_form
@@ -305,8 +305,8 @@ msgstr "Ultimo aggiornamento il"
 
 #. module: delivery_yunexpress
 #: model:ir.model.fields,help:delivery_yunexpress.field_yunexpress_manifest_wizard__carrier_ids
-msgid "Leave empty to gather all the CNE account manifests"
-msgstr "Lasciare vuoto per ottenere tutte le liste di spedizione del conto CNE"
+msgid "Leave empty to gather all the YUN account manifests"
+msgstr "Lasciare vuoto per ottenere tutte le liste di spedizione del conto YUN"
 
 #. module: delivery_yunexpress
 #: model:ir.model.fields,field_description:delivery_yunexpress.field_yunexpress_manifest_wizard__attachment_ids

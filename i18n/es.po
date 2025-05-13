@@ -90,7 +90,7 @@ msgstr "CANARIAS COMERCIO ELECTRÓNICO"
 #. module: delivery_yunexpress
 #: model:ir.model.fields.selection,name:delivery_yunexpress.selection__delivery_carrier__delivery_type__yunexpress
 msgid "Yun Express"
-msgstr "CNE Expreso"
+msgstr "YUN Expreso"
 
 #. module: delivery_yunexpress
 #: model_terms:ir.ui.view,arch_db:delivery_yunexpress.view_delivery_carrier_form
@@ -147,8 +147,8 @@ msgstr "Etiqueta Yun Express para %s"
 #. odoo-python
 #: code:addons/delivery_yunexpress/models/delivery_carrier.py:0
 #, python-format
-msgid "CNE Shipping Documents"
-msgstr "Documentos de envío CNE"
+msgid "YUN Shipping Documents"
+msgstr "Documentos de envío YUN"
 
 #. module: delivery_yunexpress
 #: model_terms:ir.ui.view,arch_db:delivery_yunexpress.delivery_manifest_wizard_form
@@ -306,8 +306,8 @@ msgstr "Última actualización el"
 
 #. module: delivery_yunexpress
 #: model:ir.model.fields,help:delivery_yunexpress.field_yunexpress_manifest_wizard__carrier_ids
-msgid "Leave empty to gather all the CNE account manifests"
-msgstr "Dejar vacío para obtener los manifiestos de todas las cuentas de CNE"
+msgid "Leave empty to gather all the YUN account manifests"
+msgstr "Dejar vacío para obtener los manifiestos de todas las cuentas de YUN"
 
 #. module: delivery_yunexpress
 #: model:ir.model.fields,field_description:delivery_yunexpress.field_yunexpress_manifest_wizard__attachment_ids
