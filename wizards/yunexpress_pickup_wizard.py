@@ -9,9 +9,14 @@ class CNEExpressPickupWizard(models.TransientModel):
         comodel_name="delivery.carrier",
         domain=[("delivery_type", "=", "yunexpress")],
     )
-    delivery_date = fields.Date(required=True, default=fields.Date.context_today)
-    min_hour = fields.Float(required=True)
-    max_hour = fields.Float(required=True, default=23.99)
+    shipping_code = fields.Char(
+        string="Shipping Code",
+        help="Shipping code to be used for the pickup request",
+        required=True,
+    )
+    # delivery_date = fields.Date(required=True, default=fields.Date.context_today)
+    # min_hour = fields.Float(required=True)
+    # max_hour = fields.Float(required=True, default=23.99)
     code = fields.Char(readonly=True)
     state = fields.Selection(
         selection=[("new", "new"), ("done", "done")],
@@ -37,15 +42,14 @@ class CNEExpressPickupWizard(models.TransientModel):
             """Helper to pass the times in the expexted format 'HH:MM'"""
             return "{:02.0f}:{:02.0f}".format(*divmod(float_time * 60, 60))
 
-        ctt_request = self.carrier_id._ctt_request()
-        delivery_date = fields.Date.to_string(self.delivery_date)
-        error, code = ctt_request.create_request(
-            delivery_date,
-            convert_float_time_to_str(self.min_hour),
-            convert_float_time_to_str(self.max_hour),
+        yun_request = self.carrier_id._yun_request()
+        # delivery_date = fields.Date.to_string(self.delivery_date)
+        shipping_code = self.shipping_code
+        error, code = yun_request.create_request(
+            shipping_code,
         )
-        self.carrier_id._ctt_check_error(error)
-        self.carrier_id._ctt_log_request(ctt_request)
+        self.carrier_id._yun_check_error(error)
+        self.carrier_id._yun_log_request(yun_request)
         self.code = code
         self.state = "done"
         return dict(

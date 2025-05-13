@@ -53,14 +53,14 @@ class CNEExpressManifestWizard(models.TransientModel):
                 )
             )
         for carrier in filtered_carriers:
-            ctt_request = carrier._ctt_request()
+            yun_request = carrier._yun_request()
             from_date = fields.Date.to_string(self.from_date)
             to_date = fields.Date.to_string(self.to_date)
-            error, manifest = ctt_request.report_shipping(
+            error, manifest = yun_request.report_shipping(
                 "ODOO", self.document_type, from_date, to_date
             )
-            carrier._ctt_check_error(error)
-            carrier._ctt_log_request(ctt_request)
+            carrier._yun_check_error(error)
+            carrier._yun_log_request(yun_request)
             for _filename, file in manifest:
                 filename = "{}{}{}-{}-{}.{}".format(
                     carrier.yunexpress_customer,

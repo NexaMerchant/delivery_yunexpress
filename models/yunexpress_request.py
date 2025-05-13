@@ -23,19 +23,29 @@ class YUNExpressRequest:
     """
     api_cid = False
     api_secret = False
+    api_token = False
 
     def __init__(self, api_cid, api_secret, prod=False):
         self.api_cid = api_cid
         self.api_secret = api_secret
         # We'll store raw xml request/responses in this properties
-        self.ctt_last_request = False
-        self.ctt_last_response = False
+        self.yun_last_request = False
+        self.yun_last_response = False
         self.url = YUNEXPRESS_API_URL["prod"] if prod else YUNEXPRESS_API_URL["test"]
         self.headers = {
             "Content-Type": "application/json;charset=UTF-8",
             "Accept": "application/json",
         }
+        self.api_token = self.get_api_token()
 
+
+    def get_api_token(self):
+        token = self.api_cid + "&" + self.api_secret
+        print("Yun token: ", token)
+        print("Yun cid: ", self.api_cid)
+        print("Yun secret: ", self.api_secret)
+        base64_token = base64.b64encode(token.encode('utf-8')).decode('utf-8')
+        return base64_token
 
     @staticmethod
     def _format_error(error):
@@ -92,7 +102,7 @@ class YUNExpressRequest:
     def cneprint(self, cnos, ptemp="label10x10_1"):
         url = "https://label.cne.com/CnePrint"
         timestamp = str(int(time.time()*1000))
-        combined = (self.api_cid + cnos + self.api_token).encode('utf-8')
+        combined = (self.api_cid + cnos + self.api_secret).encode('utf-8')
         # lowercase
         secret = secret = hashlib.md5(combined).hexdigest()
         # unlowercase
@@ -125,20 +135,20 @@ class YUNExpressRequest:
         headers = {
             "Content-Type": "application/json;charset=UTF-8",
             "Accept": "application/json",
+            "Authorization": "Basic " + self.api_token
         }
+        print(headers)
         # Generate the secret key for the API
-        url = self.url + "/cgi-bin/EmsData.dll?DoApi"
+        url = self.url + "/api/WayBill/CreateOrder"
         timestamp = str(int(time.time()*1000))
 
-        print("cne url" + url)
+        print("Yun url" + url)
 
-        data = {
-            "RequestName": "PreInputSet",
-            "icID": self.api_cid,
-            "TimeStamp": timestamp,
-            "MD5": self.get_secret(timestamp),
-            "RecList": [shipping_values]
-        }
+        data = [
+            shipping_values
+        ]
+
+        print(data)
 
         response = requests.post(url, headers=headers, json=data)
 
@@ -151,6 +161,10 @@ class YUNExpressRequest:
         _logger.info("Response Data: %s", response.text)
 
         print("Request Data: ", response.text)
+        print("Request URL: ", url)
+        print("Request Headers: ", headers)
+        print("Request Data: ", data)
+        print("Response Status Code: ", response.status_code)
 
         cNo = ""
         printUrl = ""
@@ -158,27 +172,63 @@ class YUNExpressRequest:
         # check the response status code and response data
         if response.status_code != 200:
             raise Exception("Error in request")
-        if response.json().get("ReturnValue") == 0:
-            raise Exception("Error in response")
-        if response.json().get("OK") == 0:
-            raise Exception(response.json().get("ErrList")[0].get("cMess"))
-        if response.json().get("ReturnValue") > 0:
-            ErrList = response.json().get("ErrList")
-            if ErrList:
-                cNo = ErrList[0].get("cNo")
-                printUrl = ErrList[0].get("printUrl")
-            else:
-                cNo = response.json().get("cNo")
-                printUrl = response.json().get("printUrl")
+        if response.json().get("Code") == "1001":
+            # if the item[0] Remark include "重复"
+            print("Error in response")
+            print("Error in response: ", response.json().get("Item"))
+            if "重复" in response.json().get("Item")[0].get("Remark"):
+                print("Shipping code already exists")
+                try:
+                    yun_status, yun_order = self.get_order_details(shipping_code=shipping_values["CustomerOrderNumber"])
+                    print("Yun order: ", yun_order)
+                    print("Yun order Code: ", yun_order["Code"])
+                    if str(yun_order['Code']) == "0000":
+                        print("Shipping code already exists: ", yun_order['Item']["WayBillNumber"])
+                        cNo = yun_order['Item']["WayBillNumber"]
+                except Exception as e:
+                    print("Error in get order details: ", e)
+                    raise Exception("Error in get order details")
+                
+        try:
+            printUrlInfo = self.get_documents_multi(shipping_codes=shipping_values["CustomerOrderNumber"])
+            printUrl = printUrlInfo.get("Item")[0].get("Url")
+        except Exception as e:
+            print("Error in get documents: ", e)
+            raise Exception("Error in get documents")
+
+        print("PrintUrlInfo: ", printUrlInfo)
+        
         print("cNo: ", cNo)
         print("PrintUrl: ", printUrl)
-
 
         return (
             "1",
             printUrl,
             cNo,
         )
+
+    def get_order_details(self, shipping_code):
+        """Get order details by shipping code. Maps to API's GetOrderDetails.
+
+        :param str shipping_code: Shipping code
+        :return tuple: contents of tuple:
+            list: error codes in the form of tuples (code, descriptions)
+            list: of OrderedDict with order details
+        """
+        url = self.url + "/api/WayBill/GetOrder"
+        
+        headers = {
+            "Content-Type": "application/json;charset=UTF-8",
+            "Accept": "application/json",
+            "Authorization": "Basic " + self.api_token
+        }
+
+        data = {
+            "OrderNumber": shipping_code,
+        }
+        response = requests.post(url, headers=headers, json=data)
+        print(response.json())
+        return (response.status_code, response.json())
 
     def get_tracking(self, shipping_code):
         """Gather tracking status of shipping code. Maps to API's GetTracking.
@@ -188,20 +238,14 @@ class YUNExpressRequest:
             list: error codes in the form of tuples (code, descriptions)
             list: of OrderedDict with statuses
         """
-        url = "https://apitracking.cne.com/client/track"
-        timestamp = str(int(time.time()*1000))
-        secret = self.get_secret(timestamp)
+        url = self.url + "/api/Tracking/GetTrackAllInfo"
         headers = {
             "Content-Type": "application/json;charset=UTF-8",
             "Accept": "application/json",
+            "Authorization": "Basic " + self.api_token
         }
         data = {
-            "RequestName": "ClientTrack",
-            "icID": self.api_cid,
-            "TimeStamp": timestamp,
-            "MD5": secret,
-            "cNo": shipping_code,
-            "lang": "en"
+            "OrderNumber": shipping_code  
         }
         response = requests.post(url, headers=headers, json=data)
         print(response.text)
@@ -245,20 +289,22 @@ class YUNExpressRequest:
             list: error codes in the form of tuples (code, descriptions)
             list: documents in the form of tuples (file_content, file_name)
         """
-        url = "https://label.cne.com/CnePrint"
-        timestamp = str(int(time.time()*1000))
-        secret = self.get_secret(timestamp)
-        data = {
-            "icID": self.api_cid,
-            "signature": secret,
-            "cNos": shipping_codes,
-            "ptemp": "label10x15_1",
+        url = self.url + "/api/Label/Print"
+        print("Yun Label Print url" + url)
+        data = [
+            shipping_codes,
+        ]
+            
+        headers = {
+            "Content-Type": "application/json;charset=UTF-8",
+            "Accept": "application/json",
+            "Authorization": "Basic " + self.api_token
         }
-        response = requests.get(url, params=data)
+        response = requests.post(url, headers=headers, json=data)
         if response.status_code != 200:
             raise Exception("Error in request")
-        if response.json().get("ErrorCode") != 0:
-            raise Exception("Error in response")
+        if response.json().get("Code") != "0000":
+            raise Exception("Error in response" + response.json())
         return response.json()
 
     def get_service_types(self):
@@ -311,7 +357,7 @@ class YUNExpressRequest:
         return self.emskindlist()
 
 
-    def create_request(self, delivery_date, min_hour, max_hour):
+    def create_request(self, shipping_code):
         """Create a shipping pickup request. CreateRequest API's mapping.
 
         :param datetime.date delivery_date: Delivery date
@@ -321,21 +367,15 @@ class YUNExpressRequest:
             list: Error codes
             str: Request shipping code
         """
-        url = "https://apitracking.cne.com/client/track"
-        timestamp = str(int(time.time()*1000))
-        secret = self.get_secret(timestamp)
+        url = self.url + "/api/Waybill/GetTrackingNumber"
         headers = {
             "Content-Type": "application/json;charset=UTF-8",
             "Accept": "application/json",
+            "Authorization": "Basic " + self.api_token
         }
         data = {
-            "RequestName": "ClientTrack",
-            "icID": self.api_cid,
-            "TimeStamp": timestamp,
-            "MD5": secret,
-            "cNo": "3A5V908307617",
-            "lang": "en"
+            "CustomerOrderNumber": shipping_code,
         }
-        response = requests.post(url, headers=headers, json=data)
+        response = requests.get(url, headers=headers, json=data)
         print(response.text)
         return (response.status_code, response.text)

@@ -8,7 +8,12 @@ import base64
 
 _logger = logging.getLogger(__name__)
 
+from .yunexpress_master_data import (
+    YUNEXPRESS_CHANNELS,
+)
+
 from .yunexpress_request import YUNExpressRequest
+
 
 
 class DeliveryCarrier(models.Model):
@@ -25,6 +30,11 @@ class DeliveryCarrier(models.Model):
     yunexpress_api_secret = fields.Char(
         string="API Secret",
         help="Yun Express API Secret. This is the password used to connect to the API.",
+    )
+
+    yunexpress_channel = fields.Selection(
+        selection=YUNEXPRESS_CHANNELS,
+        string="Channel",
     )
 
     yunexpress_document_model_code = fields.Selection(
@@ -45,12 +55,12 @@ class DeliveryCarrier(models.Model):
     yunexpress_document_offset = fields.Integer(string="Document Offset")
 
     @api.onchange("delivery_type")
-    def _onchange_delivery_type_ctt(self):
+    def _onchange_delivery_type_yun(self):
         """Default price method for CNE as the API can't gather prices."""
         if self.delivery_type == "yunexpress":
             self.price_method = "base_on_rule"
 
-    def _ctt_request(self):
+    def _yun_request(self):
         """Get CNE Request object
 
         :return YUNExpressRequest: Yun Express Request object
@@ -64,30 +74,30 @@ class DeliveryCarrier(models.Model):
             # read the value from the configuration
             _logger.warning("yunexpress_api_secret is False, please check configuration.")
             self.yunexpress_api_secret = config.get(
-                "cne_api_secret", self.yunexpress_api_secret
+                "yun_api_secret", self.yunexpress_api_secret
             )
         if self.yunexpress_api_cid is False:
             self.yunexpress_api_cid = config.get(
-                "cne_api_cid", self.yunexpress_api_cid
+                "yun_api_cid", self.yunexpress_api_cid
             )
         
 
         return YUNExpressRequest(
             api_cid=self.yunexpress_api_cid,
-            api_token=self.yunexpress_api_secret,
+            api_secret=self.yunexpress_api_secret,
             prod=self.prod_environment,
         )
 
     @api.model
-    def _ctt_log_request(self, ctt_request):
+    def _yun_log_request(self, yun_request):
         """When debug is active requests/responses will be logged in ir.logging
 
-        :param ctt_request ctt_request: Yun Express request object
+        :param yun_request yun_request: Yun Express request object
         """
-        self.log_xml(ctt_request.ctt_last_request, "ctt_request")
-        self.log_xml(ctt_request.ctt_last_response, "ctt_response")
+        self.log_xml(yun_request.yun_last_request, "yun_request")
+        self.log_xml(yun_request.yun_last_response, "ctt_response")
 
-    def _ctt_check_error(self, error):
+    def _yun_check_error(self, error):
         """Common error checking. We stop the program when an error is returned.
 
         :param list error: List of tuples in the form of (code, description)
@@ -134,10 +144,10 @@ class DeliveryCarrier(models.Model):
         if not self.yunexpress_shipping_type:
             return
         # Avoid checking if credentianls aren't setup or are invalid
-        ctt_request = self._ctt_request()
-        error, service_types = ctt_request.get_service_types()
-        self._ctt_log_request(ctt_request)
-        self._ctt_check_error(error)
+        yun_request = self._yun_request()
+        error, service_types = yun_request.get_service_types()
+        self._yun_log_request(yun_request)
+        self._yun_check_error(error)
         type_codes, type_descriptions = zip(*service_types)
         if self.yunexpress_shipping_type not in type_codes:
             service_name = dict(
@@ -155,15 +165,15 @@ class DeliveryCarrier(models.Model):
                 )
             )
 
-    def action_ctt_validate_user(self):
+    def action_yun_validate_user(self):
         """Maps to API's ValidateUser method
 
         :raises UserError: If the user credentials aren't valid
         """
         self.ensure_one()
-        ctt_request = self._ctt_request()
-        error = ctt_request.validate_user()
-        self._ctt_log_request(ctt_request)
+        yun_request = self._yun_request()
+        error = yun_request.validate_user()
+        self._yun_log_request(yun_request)
 
     def _prepare_yunexpress_shipping(self, picking):
         """Convert picking values for Yun Express API
@@ -182,13 +192,14 @@ class DeliveryCarrier(models.Model):
         recipient = picking.partner_id
         recipient_entity = picking.partner_id.commercial_partner_id
         weight = picking.shipping_weight
+        weight = 1.0
         reference = picking.name
         if picking.sale_id:
             reference = "{}-{}".format(picking.sale_id.name, reference)
 
-        # https://apifox.com/apidoc/shared/6eba6d59-905d-4587-810b-607358a30aa3/doc-2909525
+        # https://yunexpress-uc-down.oss-cn-shenzhen.aliyuncs.com/YT-PRO/UCV2/%E4%BA%91%E9%80%94%E7%89%A9%E6%B5%81API%E6%8E%A5%E5%8F%A3%E5%BC%80%E5%8F%91%E8%A7%84%E8%8C%83OMS-20250207.pdf
 
-        goodslist = []
+        Parcels = []
         # Get the product name and quantity from the picking
         for move in picking.move_ids:
             # get the product name and quantity from the picking
@@ -196,13 +207,14 @@ class DeliveryCarrier(models.Model):
             # if the move.product_id.declared_price is 0.0 and product type is service, skip the product
             if move.product_id.declared_price == 0.0 and move.product_id.type == "service":
                 continue
-            goodslist.append(
+            Parcels.append(
                 {
-                    "cxGoods": move.product_id.declared_name_en,
-                    "cxGoodsA": move.product_id.declared_name_cn,
-                    "fxPrice": move.product_id.declared_price,
-                    "cxMoney": picking.company_id.currency_id.name,
-                    "ixQuantity": 1,
+                    "Ename": move.product_id.declared_name_en,
+                    "CName": move.product_id.declared_name_cn,
+                    "UnitPrice": move.product_id.declared_price,
+                    "CurrencyCode": picking.company_id.currency_id.name,
+                    "UnitWeight": weight,
+                    "Quantity": 1,
                 }
             )
 
@@ -228,50 +240,72 @@ class DeliveryCarrier(models.Model):
         # iossCode = config.get("yunexpress_eu_ioss_code", iossCode)
         iossCode = config.get("yunexpress_eu_ioss_code", iossCode)
 
-        return {
-            "cEmsKind": self.name.replace(" ",""),  # Optional
-            "nItemType": 1,  # Optional
-            "cAddrFrom": "MYSHOP",
-            "iItem": 1,  # Optional
-            # order number
-            "cRNo": reference,
-            # order receiver country code
-            "cDes": recipient.country_id.code,
-            # order receiver name
-            "cReceiver": recipient.name or recipient_entity.name,
-            # order receiver company name
-            "cRunit": recipient_entity.name,
-            # order receiver address
-            "cRAddr": recipient.street,
-            # order receiver city
-            "cRCity": recipient.city,
-            # order receiver province
-            "cRProvince": recipient.state_id.name,
-            # order receiver postal code
-            "cRPostcode": recipient.zip,
-            # order receiver country name
-            "cRCountry": recipient.country_id.name,
-            # order receiver phone number
-            "cRPhone": str(recipient.phone or recipient_entity.phone or ''),
-            # order receiver mobile number
-            "cRSms": str(recipient.mobile or recipient_entity.mobile or ''),
-            # order receiver email address
-            "cRPhone": str(recipient.phone or recipient_entity.phone or ''),
-            # order package weight
-            "fWeight": 1,  # Weight in grams
-            # order memo
-            "cMemo": None,  # Optional
-            # order reserve
-            "cReserve": None,  # Optional
-            # order vat code
-            "vatCode": vatCode,  # Optional
-            # order ioss code
-            "iossCode": iossCode,  # Optional
-            # order sender name
-            "cSender": sender_partner.name,
-            "labelContent": labelcontent,  # Optional
-            "GoodsList": goodslist
+        Receiver = {
+            "CountryCode": recipient.country_id.code,
+            "FirstName": recipient.name or recipient_entity.name,
+            "LastName": recipient_entity.name,
+            "Street": recipient.street,
+            "City": recipient.city,
+            "Zip": recipient.zip,
+            "Phone": str(recipient.phone or recipient_entity.phone or ""),
+            "Email": str(recipient.email or recipient_entity.email or ""),
         }
+        
+        sourceCode = reference.replace("/", "-")
+
+        return {
+            "ShippingMethodCode": self.yunexpress_channel,
+            "CustomerOrderNumber": sourceCode,
+            "PackageCount": 1,
+            "Weight": weight,
+            "Receiver": Receiver,
+            "Parcels": Parcels
+        }
+
+        # return {
+        #     "ShippingMethodCode": self.yunexpress_channel,
+        #     "nItemType": 1,  # Optional
+        #     "cAddrFrom": "MYSHOP",
+        #     "iItem": 1,  # Optional
+        #     # order number
+        #     "CustomerOrderNumber": reference,
+        #     # order receiver country code
+        #     "cDes": recipient.country_id.code,
+        #     # order receiver name
+        #     "cReceiver": recipient.name or recipient_entity.name,
+        #     # order receiver company name
+        #     "cRunit": recipient_entity.name,
+        #     # order receiver address
+        #     "cRAddr": recipient.street,
+        #     # order receiver city
+        #     "cRCity": recipient.city,
+        #     # order receiver province
+        #     "cRProvince": recipient.state_id.name,
+        #     # order receiver postal code
+        #     "cRPostcode": recipient.zip,
+        #     # order receiver country name
+        #     "cRCountry": recipient.country_id.name,
+        #     # order receiver phone number
+        #     "cRPhone": str(recipient.phone or recipient_entity.phone or ''),
+        #     # order receiver mobile number
+        #     "cRSms": str(recipient.mobile or recipient_entity.mobile or ''),
+        #     # order receiver email address
+        #     "cRPhone": str(recipient.phone or recipient_entity.phone or ''),
+        #     # order package weight
+        #     "fWeight": 1,  # Weight in grams
+        #     # order memo
+        #     "cMemo": None,  # Optional
+        #     # order reserve
+        #     "cReserve": None,  # Optional
+        #     # order vat code
+        #     "vatCode": vatCode,  # Optional
+        #     # order ioss code
+        #     "iossCode": iossCode,  # Optional
+        #     # order sender name
+        #     "cSender": sender_partner.name,
+        #     "labelContent": labelcontent,  # Optional
+        #     "GoodsList": goodslist
+        # }
 
     def yunexpress_send_shipping(self, pickings):
         """Yun Express wildcard method called when a picking is confirmed
@@ -281,16 +315,15 @@ class DeliveryCarrier(models.Model):
         :return dict: With tracking number and delivery price (always 0)
         """
         print("yunexpress_send_shipping")
-        ctt_request = self._ctt_request()
-        print("yunexpress_send_shipping ctt_request")
+        yun_request = self._yun_request()
+        print("yunexpress_send_shipping yun_request")
         print(self.yunexpress_api_cid)
-        print(ctt_request.ctt_last_request)
-        print("yunexpress_send_shipping ctt_request")
+        print("yunexpress_send_shipping yun_request")
         result = []
         for picking in pickings:
 
             # Check if the picking is already shipped
-            if picking.state == "done":
+            if picking.state == "done" and picking.carrier_tracking_ref:
                 raise UserError(_("This picking is already shipped."))
             
             # check if the picking has a tracking number and the same carrier
@@ -302,12 +335,12 @@ class DeliveryCarrier(models.Model):
             print(vals)
         
             try:
-                error, documents, tracking = ctt_request.manifest_shipping(pickings=picking,shipping_values=vals)
-                self._ctt_check_error(error)
+                error, documents, tracking = yun_request.manifest_shipping(pickings=picking,shipping_values=vals)
+                self._yun_check_error(error)
             except Exception as e:
                 raise (e)
             finally:
-                self._ctt_log_request(ctt_request)
+                self._yun_log_request(yun_request)
 
             vals.update({"tracking_number": tracking, "exact_price": 0})
             vals.update({"carrier_tracking_ref": tracking})
@@ -329,7 +362,7 @@ class DeliveryCarrier(models.Model):
                 'datas': base64.b64encode(pdf_content),
                 'db_datas': base64.b64encode(pdf_content),
                 'res_model': 'stock.picking',  # Attach to the stock.picking
-                'res_id': pickings.id,  # Attach to the current picking
+                'res_id': picking.id,  # Attach to the current picking
                 'type': 'binary',
                 'mimetype': 'application/pdf',
                 'url': documents,
@@ -341,7 +374,7 @@ class DeliveryCarrier(models.Model):
             #documents = self.yunexpress_get_label(tracking)
             # We post an extra message in the chatter with the barcode and the
             # label because there's clean way to override the one sent by core.
-            body = _("CNE Shipping Documents")
+            body = _("Yun Shipping Documents")
             picking.message_post(body=body, attachments=attachment)
             # the documents is a url, we need to redirect to the url to print the label
 
@@ -360,15 +393,15 @@ class DeliveryCarrier(models.Model):
         :param recordset: pickings `stock.picking` recordset
         :returns boolean: True if success
         """
-        ctt_request = self._ctt_request()
+        yun_request = self._yun_request()
         for picking in pickings.filtered("carrier_tracking_ref"):
             try:
-                error = ctt_request.cancel_shipping(picking.carrier_tracking_ref)
-                self._ctt_check_error(error)
+                error = yun_request.cancel_shipping(picking.carrier_tracking_ref)
+                self._yun_check_error(error)
             except Exception as e:
                 raise (e)
             finally:
-                self._ctt_log_request(ctt_request)
+                self._yun_log_request(yun_request)
         return True
 
     def yunexpress_get_label(self, reference):
@@ -382,19 +415,19 @@ class DeliveryCarrier(models.Model):
         if not reference:
             return False
         self.ensure_one()
-        ctt_request = self._ctt_request()
+        yun_request = self._yun_request()
         try:
-            error, label = ctt_request.get_documents_multi(
+            error, label = yun_request.get_documents_multi(
                 reference,
                 model_code=self.yunexpress_document_model_code,
                 kind_code=self.yunexpress_document_format,
                 offset=self.yunexpress_document_offset,
             )
-            self._ctt_check_error(error)
+            self._yun_check_error(error)
         except Exception as e:
             raise (e)
         finally:
-            self._ctt_log_request(ctt_request)
+            self._yun_log_request(yun_request)
         if not label:
             return False
         return label
@@ -407,14 +440,14 @@ class DeliveryCarrier(models.Model):
         self.ensure_one()
         if not picking.carrier_tracking_ref:
             return
-        ctt_request = self._ctt_request()
+        yun_request = self._yun_request()
         try:
-            error, trackings = ctt_request.get_tracking(picking.carrier_tracking_ref)
-            self._ctt_check_error(error)
+            error, trackings = yun_request.get_tracking(picking.carrier_tracking_ref)
+            self._yun_check_error(error)
         except Exception as e:
             raise (e)
         finally:
-            self._ctt_log_request(ctt_request)
+            self._yun_log_request(yun_request)
         picking.tracking_state_history = "\n".join(
             [self._yunexpress_format_tracking(tracking) for tracking in trackings]
         )

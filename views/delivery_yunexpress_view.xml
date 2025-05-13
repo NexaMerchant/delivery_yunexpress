@@ -33,9 +33,10 @@
                                 name="yunexpress_api_secret"
                                 attrs="{'required': [('delivery_type', '=', 'yunexpress')]}"
                             />
+                            
 
                             <button
-                                name="action_ctt_validate_user"
+                                name="action_yun_validate_user"
                                 type="object"
                                 string="Test connection"
                                 class="oe_link"
@@ -43,7 +44,15 @@
                             />
                         </group>
 
+                        <group string="Shipping">
+                            <field
+                                name="yunexpress_channel"
+                                attrs="{'required': [('delivery_type', '=', 'yunexpress')]}"
+                            />
+                        </group>
+
                         <group string="Label format">
+                        
                             <field
                                 name="yunexpress_document_model_code"
                                 attrs="{'required': [('delivery_type', '=', 'yunexpress')]}"

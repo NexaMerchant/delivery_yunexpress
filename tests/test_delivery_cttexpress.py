@@ -64,10 +64,10 @@ class TestDeliveryCNEExpress(common.TransactionCase):
 
     def test_00_yunexpress_test_connection(self):
         """Test credentials validation"""
-        self.carrier_yunexpress.action_ctt_validate_user()
+        self.carrier_yunexpress.action_yun_validate_user()
         self.carrier_yunexpress.yunexpress_password = "Bad password"
         with self.assertRaises(UserError):
-            self.carrier_yunexpress.action_ctt_validate_user()
+            self.carrier_yunexpress.action_yun_validate_user()
 
     def test_01_yunexpress_picking_confirm_simple(self):
         """The picking is confirm and the shipping is recorded to Yun Express"""
