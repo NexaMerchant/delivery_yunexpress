@@ -188,6 +188,11 @@ class YUNExpressRequest:
                 except Exception as e:
                     print("Error in get order details: ", e)
                     raise Exception("Error in get order details")
+        # 
+        if response.json().get("Code") == "0000":
+            print("Success in response")
+            print("Success in response: ", response.json().get("Item"))
+            cNo = response.json().get("Item")[0].get("WayBillNumber")
                 
         try:
             printUrlInfo = self.get_documents_multi(shipping_codes=shipping_values["CustomerOrderNumber"])
